@@ -16,11 +16,12 @@ import time
 def callback():
     headers = {
         'Content-Type': 'application/json',
+        'appid':entry_A.get(),
     }
 
-    data = '{"username":"' + entry_W.get() + '","password":"' + entry_L.get() + '"}'
+    data = '{"username":"' + entry_U.get() + '","password":"' + entry_P.get() + '"}'
  
-    response = requests.get('http://api.3dusernet.com/3dusernetApi/api/sign_in.json', headers=headers, data=data)
+    response = requests.get('https://api.3dusernet.com/3dusernetApi/api/sign_in.json', headers=headers, data=data)
     text_area.insert(END, response.text + '\n')
     x = json.loads(response.text)
     show_token.insert(END, x['token'])
@@ -36,10 +37,10 @@ def listproj(table):
         'token': show_token.get("1.0",'end-1c'),
     }
 
-    response2 = requests.get('http://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers)
+    response2 = requests.get('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers)
     x = json.loads(response2.text)
     try:
-        y = json.loads(x)
+        y = x['projects']
         for i in table.get_children():
             table.delete(i)
         if type(y) is list:
@@ -156,7 +157,7 @@ def listlib(table):
     response = requests.get('http://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers)
     x = json.loads(response.text)
     try:
-        y = json.loads(x)
+        y = x['libraries']
         for i in table.get_children():
             table.delete(i)
         if type(y) is list:
@@ -532,7 +533,7 @@ root.geometry('{}x{}'.format(650, 500))
 # create all of the main containers
 top_frame = Frame(root, bg='purple', width=450, height=50, pady=3)
 center = Frame(root, bg='purple', width=50, height=40, padx=3, pady=3)
-btm_frame = Frame(root, bg='white', width=450, height=90, pady=3)
+btm_frame = Frame(root, bg='white', height=90, pady=3)
 
 
 # layout all of the main containers
@@ -545,21 +546,27 @@ btm_frame.grid(row=3, sticky="ew")
 
 # create the widgets for the top frame
 model_label = Label(top_frame, text='3DUserNet API Test',font=("Arial", 16), bg="purple", fg="white")
-width_label = Label(top_frame, text='UserName:', bg="purple",fg="white")
-length_label = Label(top_frame, text='Password:', bg="purple",fg="white")
-entry_W = Entry(top_frame, background="white", width = 15)
-entry_L = Entry(top_frame, show="*", background="white", width = 15)
-get_token = Button(top_frame, text="OK", command=callback)
+user_label = Label(top_frame, text='UserName:', bg="purple",fg="white")
+pass_label = Label(top_frame, text='Password:', bg="purple",fg="white")
+app_label = Label(top_frame, text='AppID:', bg="purple",fg="white")
+entry_U = Entry(top_frame, background="white", width = 15)
+entry_P = Entry(top_frame, show="*", background="white", width = 15)
+entry_A = Entry(top_frame, background="white", width = 15)
+get_token = Button(top_frame, bg="purple", highlightbackground="purple", text="OK", command=callback)
+token_label = Label(top_frame, text='Token:', bg="purple",fg="white")
 show_token = Text(top_frame, height = 1,background="grey", width =30)
 
 # layout the widgets in the top frame
-model_label.grid(row=0, columnspan=4)
-width_label.grid(row=1, column=0)
-length_label.grid(row=1, column=2)
-entry_W.grid(row=1, column=1)
-entry_L.grid(row=1, column=3)
+model_label.grid(row=0, columnspan=6)
+user_label.grid(row=1, column=0)
+pass_label.grid(row=1, column=2)
+app_label.grid(row=1, column=4)
+entry_U.grid(row=1, column=1)
+entry_P.grid(row=1, column=3)
+entry_A.grid(row=1, column=5)
 get_token.grid(row=2,column=0)
-show_token.grid(row=2,column=1,columnspan=3)
+token_label.grid(row=2,column=1)
+show_token.grid(row=2,column=2,columnspan=3)
 
 # create the center widgets
 center.grid_rowconfigure(0, weight=1)
@@ -672,11 +679,11 @@ bt_cpmd.grid(row=9)
 
 # create the widgets for the bottom frame
 btm_frame.grid_rowconfigure(0, weight=1)
-btm_frame.grid_columnconfigure(1, weight=1)
+btm_frame.grid_columnconfigure(0, weight=1)
 
 text_area= Text(btm_frame, height = 5,background="cyan")
 
 # layout the widgets in the bottom frame
-text_area.grid(row=0,column=0, sticky="ew")
+text_area.grid(row=0,column=0,sticky=W+E)
 
 root.mainloop()
