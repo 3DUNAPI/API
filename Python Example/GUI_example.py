@@ -1,5 +1,7 @@
+import tkinter
 from tkinter import *
 import tkinter.ttk as ttk
+from tkinter import filedialog
 import requests
 import shutil
 import json
@@ -88,7 +90,7 @@ def add_Project():
         data3 = str(data)
         print(data2)
         print(data3)
-        response = requests.post('http://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
+        response = requests.post('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
         print (response.text)
         t.destroy
     
@@ -121,7 +123,7 @@ def add_Project():
         'token': show_token.get("1.0",'end-1c'),
     }
 
-    response = requests.get('http://api.3dusernet.com/3dusernetApi/api/groups.json', headers=headers)
+    response = requests.get('https://api.3dusernet.com/3dusernetApi/api/groups.json', headers=headers)
     x = json.loads(response.text)
     try:
         y = json.loads(x)
@@ -154,7 +156,7 @@ def listlib(table):
         'token': show_token.get("1.0",'end-1c'),
     }
 
-    response = requests.get('http://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers)
+    response = requests.get('https://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers)
     x = json.loads(response.text)
     try:
         y = x['libraries']
@@ -191,11 +193,11 @@ def listpc():
     data = '{ "id": '+ str(listbox.item(uid)['values'][0]) + '}'
     print (v.get())
     if v.get() ==1 :
-        response = requests.get('http://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
+        response = requests.get('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
     else:
-        response = requests.get('http://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers, data=data)       
+        response = requests.get('https://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers, data=data)       
     x = json.loads(response.text)
-    y = (x['pointclouds'])
+    y = x['pointclouds']
     for i in lb_assets.get_children():
         lb_assets.delete(i)
     try:
@@ -234,11 +236,11 @@ def listmod():
     data = '{ "id": '+ str(listbox.item(uid)['values'][0]) + '}'
     print (v.get())
     if v.get() ==1 :
-        response = requests.get('http://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
+        response = requests.get('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
     else:
-        response = requests.get('http://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers, data=data)       
+        response = requests.get('https://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers, data=data)       
     x = json.loads(response.text)
-    y = (x['models'])
+    y = x['models']
 
     for i in lb_assets.get_children():
         lb_assets.delete(i)
@@ -279,11 +281,11 @@ def listsnaps():
     data = '{ "id": '+ str(listbox.item(uid)['values'][0]) + '}'
     print (v.get())
     if v.get() ==1 :
-        response = requests.get('http://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
+        response = requests.get('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
     else:
-        response = requests.get('http://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers, data=data)       
+        response = requests.get('https://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers, data=data)       
     x = json.loads(response.text)
-    y = (x['snapshots'])
+    y = x['snapshots']
     
     for i in lb_assets.get_children():
         lb_assets.delete(i)
@@ -325,7 +327,7 @@ def updt_gr(event):
 
 def updt_as(event):
     print("update_asset")
-    # update informatio on right side, required before download is available.
+    # update information on right side, required before download is available.
     headers = {
         'Content-Type': 'application/json',
         'token': show_token.get("1.0",'end-1c'),
@@ -339,22 +341,22 @@ def updt_as(event):
     else:
         if v2.get() == 1 :
             print ("pc")
-            response = requests.get('http://api.3dusernet.com/3dusernetApi/api/point_cloud.json', headers=headers, data=data)
+            response = requests.get('https://api.3dusernet.com/3dusernetApi/api/point_cloud.json', headers=headers, data=data)
             x = json.loads(response.text)
-            y = json.loads(x)
+            y = x['point_cloud']
 
         elif v2.get()==2 :
             print("mod")
-            response = requests.get('http://api.3dusernet.com/3dusernetApi/api/models.json', headers=headers, data=data)
+            response = requests.get('https://api.3dusernet.com/3dusernetApi/api/models.json', headers=headers, data=data)
             x = json.loads(response.text)
-            y = json.loads(x)
+            y = x['models']
             
  
         elif v2.get()==3 :
             print("snap")
-            response = requests.get('http://api.3dusernet.com/3dusernetApi/api/snapshots.json', headers=headers, data=data)
+            response = requests.get('https://api.3dusernet.com/3dusernetApi/api/snapshots.json', headers=headers, data=data)
             x = json.loads(response.text)
-            y = json.loads(x)
+            y = x['snapshots']
  
  
         else:
@@ -418,7 +420,7 @@ def download():
             return folder
             if v2.get() == 1 :
                 print ("pc")
-                response = requests.get('http://api.3dusernet.com/3dusernetApi/api/point_cloud.json', headers=headers, data=data)
+                response = requests.get('https://api.3dusernet.com/3dusernetApi/api/point_cloud.json', headers=headers, data=data)
                 x = json.loads(response.text)
                 y = json.loads(x)
                 r = requests.get(y["s3_file_download"],stream=True)
@@ -427,7 +429,7 @@ def download():
                 return folder
             elif v2.get()==2 :
                 print("mod")
-                response = requests.get('http://api.3dusernet.com/3dusernetApi/api/models.json', headers=headers, data=data)
+                response = requests.get('https://api.3dusernet.com/3dusernetApi/api/models.json', headers=headers, data=data)
                 x = json.loads(response.text)
                 y = json.loads(x)
                 r = requests.get(y["s3_file_download"],stream=True)
