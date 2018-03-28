@@ -533,8 +533,8 @@ root.geometry('{}x{}'.format(650, 500))
 
 
 # create all of the main containers
-top_frame = Frame(root, bg='purple', width=450, height=50, pady=3)
-center = Frame(root, bg='purple', width=50, height=40, padx=3, pady=3)
+top_frame = Frame(root, bg='#660066', width=450, height=50, pady=3)
+center = Frame(root, bg='#660066', width=50, height=40, padx=3, pady=3)
 btm_frame = Frame(root, bg='white', height=90, pady=3)
 
 
@@ -547,36 +547,36 @@ center.grid(row=1, sticky="nsew")
 btm_frame.grid(row=3, sticky="ew")
 
 # create the widgets for the top frame
-model_label = Label(top_frame, text='3DUserNet API Test',font=("Arial", 16), bg="purple", fg="white")
-user_label = Label(top_frame, text='UserName:', bg="purple",fg="white")
-pass_label = Label(top_frame, text='Password:', bg="purple",fg="white")
-app_label = Label(top_frame, text='AppID:', bg="purple",fg="white")
+model_label = Label(top_frame, text='3DUserNet API Test',font=("Arial", 16), bg="#660066", fg="white")
+user_label = Label(top_frame, text='UserName:', bg="#660066",fg="white")
+pass_label = Label(top_frame, text='Password:', bg="#660066",fg="white")
+app_label = Label(top_frame, text='AppID:', bg="#660066",fg="white")
 entry_U = Entry(top_frame, background="white", width = 15)
 entry_P = Entry(top_frame, show="*", background="white", width = 15)
 entry_A = Entry(top_frame, background="white", width = 15)
-get_token = Button(top_frame, bg="purple", highlightbackground="purple", text="OK", command=callback)
-token_label = Label(top_frame, text='Token:', bg="purple",fg="white")
-show_token = Text(top_frame, height = 1,background="grey", width =30)
+get_token = Button(top_frame, bg="#660066", highlightbackground="#660066", text="OK", command=callback)
+token_label = Label(top_frame, text='Token:', bg="#660066",fg="white")
+show_token = Text(top_frame, height = 1,background="lightgrey", width = 50)
 
 # layout the widgets in the top frame
-model_label.grid(row=0, columnspan=6)
+model_label.grid(row=0, columnspan=8)
 user_label.grid(row=1, column=0)
 pass_label.grid(row=1, column=2)
 app_label.grid(row=1, column=4)
 entry_U.grid(row=1, column=1)
 entry_P.grid(row=1, column=3)
 entry_A.grid(row=1, column=5)
-get_token.grid(row=2,column=0)
-token_label.grid(row=2,column=1)
-show_token.grid(row=2,column=2,columnspan=3)
+get_token.grid(row=2,column=0, sticky=E)
+token_label.grid(row=2,column=1, sticky=E)
+show_token.grid(row=2,column=2, columnspan=4, sticky=W)
 
 # create the center widgets
 center.grid_rowconfigure(0, weight=1)
 center.grid_columnconfigure(1, weight=1)
 
-ctr_left = Frame(center, bg='grey', width=100, height=190,padx=3, pady=3)
-ctr_mid = Frame(center, bg='grey', width=100, height=190, padx=3, pady=3)
-ctr_right = Frame(center, bg='grey', width=250, height=190, padx=3, pady=3)
+ctr_left = Frame(center, bg='#c6bfd2', width=100, height=190,padx=3, pady=3)
+ctr_mid = Frame(center, bg='#c6bfd2', width=100, height=190, padx=3, pady=3)
+ctr_right = Frame(center, bg='#c6bfd2', width=250, height=190, padx=3, pady=3)
 
 ctr_left.grid(row=0, column=0, sticky="ns")
 ctr_mid.grid(row=0, column=1, sticky = "nsew")
@@ -588,8 +588,8 @@ ctr_left.grid_columnconfigure(1, weight=1)
 
 v = IntVar()
 
-rb_poj = Radiobutton(ctr_left, text="Projects", command=lambda: listproj(listbox), variable=v, value=1, bg = "grey")
-rb_lib = Radiobutton(ctr_left, text="Libraries", command=lambda: listlib(listbox), variable=v, value=2, bg = "grey")
+rb_poj = Radiobutton(ctr_left, text="Projects", command=lambda: listproj(listbox), variable=v, value=1, bg = "#c6bfd2")
+rb_lib = Radiobutton(ctr_left, text="Libraries", command=lambda: listlib(listbox), variable=v, value=2, bg = "#c6bfd2")
 lb_header = ['id', 'name']
 listbox = ttk.Treeview(ctr_left, columns=lb_header, show="headings")
 listbox.heading('id', text="id")
@@ -599,7 +599,7 @@ listbox.column('name',minwidth=0,width=150, stretch=NO)
 listbox.bind("<ButtonRelease-1>", updt_gr)
 
 #replaced with ttk tree   - listbox = Listbox(ctr_left)
-bt_addpr = Button(ctr_left,text="New Project", highlightbackground="grey", command=lambda: add_Project())
+bt_addpr = Button(ctr_left,text="New Project", highlightbackground="#c6bfd2", command=lambda: add_Project())
 
 # layout the widgets in the centre_left frame
 
@@ -613,9 +613,9 @@ ctr_mid.grid_rowconfigure(1, weight=1)
 ctr_mid.grid_columnconfigure(1, weight=1)
 
 v2 = IntVar()
-rb_pc = Radiobutton(ctr_mid, text="Pointclouds", command=lambda: listpc(), variable=v2, value=1, bg = "grey")
-rb_md = Radiobutton(ctr_mid, text="Models", command=lambda: listmod(), variable=v2, value=2, bg = "grey")
-rb_ss = Radiobutton(ctr_mid, text="Snapshots", command=lambda: listsnaps(), variable=v2, value=3, bg = "grey")
+rb_pc = Radiobutton(ctr_mid, text="Pointclouds", command=lambda: listpc(), variable=v2, value=1, bg = "#c6bfd2")
+rb_md = Radiobutton(ctr_mid, text="Models", command=lambda: listmod(), variable=v2, value=2, bg = "#c6bfd2")
+rb_ss = Radiobutton(ctr_mid, text="Snapshots", command=lambda: listsnaps(), variable=v2, value=3, bg = "#c6bfd2")
 lb_assets = ttk.Treeview(ctr_mid, columns=lb_header, show="headings")
 
 #replaced with ttk tree  - lb_assets = Listbox(ctr_mid)
@@ -625,7 +625,7 @@ lb_assets.heading('name', text="Name")
 lb_assets.column('name',minwidth=0,width=150, stretch=NO)
 lb_assets.bind("<ButtonRelease-1>", updt_as)
 
-bt_downl = Button(ctr_mid,text="Download", command=lambda: download(), highlightbackground="grey")
+bt_downl = Button(ctr_mid,text="Download", command=lambda: download(), highlightbackground="#c6bfd2")
 
 
 
@@ -639,41 +639,41 @@ bt_downl.grid(row=4)
 
 # create the widgets for the centre_left frame
 uida = StringVar()
-lbl_id = Label(ctr_right,width =30, textvariable = uida, font=("Arial", 12), anchor='w', bg="grey", fg="black")
+lbl_id = Label(ctr_right,width =30, textvariable = uida, font=("Arial", 12), anchor='e', bg="#c6bfd2", fg="black")
 uida.set("id")
 
 name = StringVar()
-lbl_name = Label(ctr_right,width =30, textvariable = name, anchor='w',font=("Arial", 12), bg="grey", fg="black")
+lbl_name = Label(ctr_right,width =30, textvariable = name, anchor='e',font=("Arial", 12), bg="#c6bfd2", fg="black")
 name.set('name')
 
 downl = StringVar()
-lbl_downl = Label(ctr_right,width =30, textvariable = downl, anchor='w', font=("Arial", 12), bg="grey", fg="black")
+lbl_downl = Label(ctr_right, justify=RIGHT, textvariable = downl, anchor='e', wraplength= 180, font=("Arial", 12), bg="#c6bfd2", fg="black")
 downl.set("download link")
 
 size = StringVar()
-lbl_size = Label(ctr_right,width =30, textvariable = size,  anchor='w', font=("Arial", 12), bg="grey", fg="black")
+lbl_size = Label(ctr_right,width =30, textvariable = size,  anchor='e', font=("Arial", 12), bg="#c6bfd2", fg="black")
 size.set("size")
 
 cr8td = StringVar()
-lbl_cr8td = Label(ctr_right,width =30, textvariable = cr8td, anchor='w', font=("Arial", 12), bg="grey", fg="black")
+lbl_cr8td = Label(ctr_right,width =30, textvariable = cr8td, anchor='e', font=("Arial", 12), bg="#c6bfd2", fg="black")
 cr8td.set("created")
 
 mod = StringVar()
-lbl_mod =Label(ctr_right,width =30, textvariable = mod, anchor='w', font=("Arial", 12), bg="grey", fg="black")
+lbl_mod =Label(ctr_right,width =30, textvariable = mod, anchor='e', font=("Arial", 12), bg="#c6bfd2", fg="black")
 mod.set("model transformation")
 
-bt_uplpc = Button(ctr_right,text = "Upload Pointcloud", command=lambda: upload_pc(), anchor='s', highlightbackground="grey")
-bt_uplmd = Button(ctr_right,text = "Upload Model", command=lambda: upload_md(), anchor='s', highlightbackground="grey")
-bt_mvmd = Button(ctr_right,text = "Move Model", command=lambda: mv_md(), anchor='s', highlightbackground="grey")
-bt_cpmd = Button(ctr_right,text = "copy Model", command=lambda: cp_md(), anchor='s', highlightbackground="grey")
+bt_uplpc = Button(ctr_right,text = "Upload Pointcloud", command=lambda: upload_pc(), anchor='s', highlightbackground="#c6bfd2")
+bt_uplmd = Button(ctr_right,text = "Upload Model", command=lambda: upload_md(), anchor='s', highlightbackground="#c6bfd2")
+bt_mvmd = Button(ctr_right,text = "Move Model", command=lambda: mv_md(), anchor='s', highlightbackground="#c6bfd2")
+bt_cpmd = Button(ctr_right,text = "copy Model", command=lambda: cp_md(), anchor='s', highlightbackground="#c6bfd2")
 
 # layout the widgets in the centre_left frame
-lbl_id.grid(row=0)
-lbl_name.grid(row=1)
-lbl_downl.grid(row=2)
-lbl_size.grid(row=3)
-lbl_cr8td.grid(row=4)
-lbl_mod.grid(row=5)
+lbl_id.grid(row=0, sticky=W)
+lbl_name.grid(row=1, sticky=W)
+lbl_downl.grid(row=2, sticky=E)
+lbl_size.grid(row=3, sticky=W)
+lbl_cr8td.grid(row=4, sticky=W)
+lbl_mod.grid(row=5, sticky=W)
 bt_uplpc.grid(row=6)
 bt_uplmd.grid(row=7)
 bt_mvmd.grid(row=8)
@@ -683,7 +683,7 @@ bt_cpmd.grid(row=9)
 btm_frame.grid_rowconfigure(0, weight=1)
 btm_frame.grid_columnconfigure(0, weight=1)
 
-text_area= Text(btm_frame, height = 5,background="cyan")
+text_area= Text(btm_frame, height = 5,background="#c1c5d6")
 
 # layout the widgets in the bottom frame
 text_area.grid(row=0,column=0,sticky=W+E)
