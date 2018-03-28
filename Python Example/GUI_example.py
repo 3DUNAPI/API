@@ -126,13 +126,14 @@ def add_Project():
     response = requests.get('https://api.3dusernet.com/3dusernetApi/api/groups.json', headers=headers)
     x = json.loads(response.text)
     try:
-        y = json.loads(x)
+        y = x['groups']
         if type(y) is list:
             print(y[1])
             print(len(y))
             i=0
-            while i < len(y) :        
-                lb_group.insert(END, y[i]['id'])
+            while i < len(y) :
+                gr_item = str(y[i]['id']) + '  ' + str(y[i]['name'])
+                lb_group.insert(END, gr_item)
                 i +=1
         else:
             print(type(y))           
@@ -443,57 +444,87 @@ def upload_pc():
     def sendpc():
         uid = listbox2.focus()
         print (listbox2.item(uid)['values'][0])
-        HOST = '34.242.73.114'
-        PORT = 8080
-        api_url = 'http://{}:{}'.format(HOST, PORT)
 
+        MAX_UPLOAD_BYTE_LENGHT = 1024 * 1024 * 5 # 5M
 
-        file_size = os.path.getsize(filename)
-        max_byte_length = 1024 * 1024 * 5 # 5M
-        headers = {'Filename': os.path.basename(filename).encode('utf-8')}        
-        headers['Token'] = show_token.get("1.0",'end-1c')
-        headers['Filesize'] = str(file_size)
-        headers['Projectid'] = str(listbox2.item(uid)['values'][0])
-        headers['Arguments'] = ent_pcattrib.get()
-        headers['filesize'] = str(file_size)
-        with open(filename, 'rb') as file:
-            chunk_count = math.ceil(float(file_size) / max_byte_length)
-            print("Total chunk count:", chunk_count)
-
-            retry_timeout = 1
-            sent_chunk_count = 0
-            while True:
-                headers['Range'] = "bytes={}/{}-{}".format(sent_chunk_count, int(chunk_count), file_size)
-
-                data = file.read(max_byte_length)
-                upload_endpoint = os.path.join(api_url, 'content', 'upload')
-                print (headers)
-                print(upload_endpoint)
-
-                try:
-                    response = requests.post(upload_endpoint, headers=headers, data=data)
-                    if response.ok:
-                        print('{}. chunk sent to server'.format(sent_chunk_count + 1))
-                        sent_chunk_count += 1
-                except requests.exceptions.RequestException as e:
-                    print('Error while sending chunk to server. Retrying in {} seconds'.format(retry_timeout))
-                    print (e)
-                    time.sleep(retry_timeout)
-
-                    # Sleep for max 10 seconds
-                    if retry_timeout < 10:
-                        retry_timeout += 1
-                    continue
-
-                if sent_chunk_count >= chunk_count:
-                    t.destroy
-                    return True
-
-            return False
-
+        HOST = 'upload.3dusernet.com'
+        #PORT = 8080
+        API_URL = 'https://{}'.format(HOST)
 
         
-    print("upload pointcloud")
+        class Client:
+            def __init__(self, api_url, max_byte_length):
+                self.api_url = api_url
+                self.max_byte_length = max_byte_length
+
+            def upload_file(self, file_path, file_type, file_arg):
+                file_size = os.path.getsize(file_path)
+                headers = {'Filename': os.path.basename(file_path)}        
+                headers['Token'] = show_token.get("1.0",'end-1c')
+                headers['Filesize'] = str(file_size)
+                headers['Projectid'] = str(listbox2.item(uid)['values'][0])
+                headers['filesize'] = str(file_size)
+                headers['Arguments'] = ent_pcattrib.get()
+                headers['Filetype'] = str(file_type)
+                #headers['location'] = '10, 10, 10'
+                #headers['rotation'] = '0.5, 0, 0.5'
+                #headers['scale'] = '1, 1, 1'
+                print (str(file_arg))
+                print (str(file_type))
+                
+                with open(file_path, 'rb') as file:
+                    chunk_count = math.ceil(float(file_size) / self.max_byte_length)
+                    print("Total chunk count:", chunk_count)
+
+                    retry_timeout = 1
+                    sent_chunk_count = 0
+                    while True:
+                        headers['Range'] = "bytes={}/{}-{}".format(sent_chunk_count, int(chunk_count), file_size)
+
+                        data = file.read(self.max_byte_length)
+                        upload_endpoint = os.path.join(self.api_url, 'content', 'upload')
+                        #print (headers)
+                        #print (upload_endpoint)
+
+                        try:
+                            response = requests.post(upload_endpoint, headers=headers, data=data)
+                            json_data = json.loads(response.text)
+                            if json_data["result"]=="success":
+                                print('{}. chunk sent to server'.format(sent_chunk_count + 1))
+                                sent_chunk_count += 1
+                            else:
+                                print('Error Message:',json_data["message"])
+                                return False
+                        except requests.exceptions.RequestException as e:
+                            print('Error while sending chunk to server. Retrying in {} seconds'.format(retry_timeout))
+                            print (e)
+                            time.sleep(retry_timeout)
+
+                            # Sleep for max 10 seconds
+                            if retry_timeout < 10:
+                                retry_timeout += 1
+                            continue
+
+                        if sent_chunk_count >= chunk_count:
+                            return True
+
+                    return False
+
+        if __name__ == '__main__':
+            client = Client(API_URL, 
+
+                MAX_UPLOAD_BYTE_LENGHT)
+        try:
+            file_path = filename
+            file_type = "PC"
+            file_arg = ent_pcattrib.get()
+            print('Uploading file:', file_path)
+            client.upload_file(file_path, file_type, file_arg)
+        except IndexError:
+            print("No file path provided")
+            print("Usage: python chunk_uploader.py [file_path]")
+            
+        print("////// Pointcloud Uploaded")
     
     filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("las files","*.las"),("laz files","*.laz"),("e57 files","*.e57"),("xyz files","*.xyz"),("ply files","*.ply")))
     print (filename)
