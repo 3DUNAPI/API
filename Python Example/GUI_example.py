@@ -376,8 +376,16 @@ def updt_as(event):
             size.set ( y['file_size'])
         cr8td.set ( y['created'])
                             
-         # to be completed once api command is sent                          
-        mod.set ( "not available")
+        # Model transformation Data
+        if v2.get() == 2:
+            mtrans = y['model_location']
+            mrot = y['model_rotation']
+            mscale = y['model_scale']
+            mFT = 'T: ' + mtrans + '\nR: ' + mrot + '\nS: ' + mscale
+            mod.set (mFT)
+        else:
+            mod.set ('Not Available')
+            
         
 
 
@@ -531,7 +539,7 @@ def upload_pc():
     fn = filename.split("/")[len(filename.split("/"))-1]
     t = Toplevel()
     t.title("Upload Pointcloud")
-    lbl_pname = Label(t,text="Project Name").pack()
+    lbl_pname = Label(t,text="Choose Upload Location").pack()
     v3 = IntVar()
     rb_poj2 = Radiobutton(t, text="Projects", command=lambda: listproj(listbox2), variable=v3, value=1).pack()
     rb_lib2 = Radiobutton(t, text="Libraries", command=lambda: listlib(listbox2), variable=v3, value=2).pack()
@@ -550,7 +558,130 @@ def upload_pc():
     
     
 def upload_md():
+    def sendmod():
+        uid = listbox2.focus()
+        print (listbox2.item(uid)['values'][0])
+
+        MAX_UPLOAD_BYTE_LENGHT = 1024 * 1024 * 5 # 5M
+
+        HOST = 'upload.3dusernet.com'
+        #PORT = 8080
+        API_URL = 'https://{}'.format(HOST)
+
+        
+        class Client:
+            def __init__(self, api_url, max_byte_length):
+                self.api_url = api_url
+                self.max_byte_length = max_byte_length
+
+            def upload_file(self, file_path, file_type, file_arg):
+                file_size = os.path.getsize(file_path)
+                print(file_size)
+                headers = {'Filename': os.path.basename(file_path)}        
+                headers['Token'] = show_token.get("1.0",'end-1c')
+                headers['Filesize'] = str(file_size)
+                headers['Projectid'] = str(listbox2.item(uid)['values'][0])
+                headers['filesize'] = str(file_size)
+                headers['Arguments'] = ent_pcattrib.get()
+                headers['Filetype'] = str(file_type)
+                headers['location'] = ent_modPos.get()
+                headers['rotation'] = ent_modRot.get()
+                headers['scale'] = ent_modScl.get()
+                print (str(file_arg))
+                print (str(file_type))
+                
+                with open(file_path, 'rb') as file:
+                    chunk_count = math.ceil(float(file_size) / self.max_byte_length)
+                    print("Total chunk count:", chunk_count)
+
+                    retry_timeout = 1
+                    sent_chunk_count = 0
+                    while True:
+                        headers['Range'] = "bytes={}/{}-{}".format(sent_chunk_count, int(chunk_count), file_size)
+
+                        data = file.read(self.max_byte_length)
+                        upload_endpoint = os.path.join(self.api_url, 'content', 'upload')
+                        #print (headers)
+                        #print (upload_endpoint)
+
+                        try:
+                            response = requests.post(upload_endpoint, headers=headers, data=data)
+                            json_data = json.loads(response.text)
+                            if json_data["result"]=="success":
+                                print('{}. chunk sent to server'.format(sent_chunk_count + 1))
+                                sent_chunk_count += 1
+                            else:
+                                print('Error Message:',json_data["message"])
+                                return False
+                        except requests.exceptions.RequestException as e:
+                            print('Error while sending chunk to server. Retrying in {} seconds'.format(retry_timeout))
+                            print (e)
+                            time.sleep(retry_timeout)
+
+                            # Sleep for max 10 seconds
+                            if retry_timeout < 10:
+                                retry_timeout += 1
+                            continue
+
+                        if sent_chunk_count >= chunk_count:
+                            return True
+
+                    return False
+
+        if __name__ == '__main__':
+            client = Client(API_URL, 
+
+                MAX_UPLOAD_BYTE_LENGHT)
+        try:
+            file_path = filename
+            file_type = "Model"
+            file_arg = ent_pcattrib.get()
+            print('Uploading file:', file_path)
+            client.upload_file(file_path, file_type, file_arg)
+        except IndexError:
+            print("No file path provided")
+            print("Usage: python chunk_uploader.py [file_path]")
+            
+        print("////// Model Uploaded")
+    
+    filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("stl files","*.stl"),("fbx files","*.fbx"),("ifc files","*.ifc"),("obj files","*.obj"),("ply files","*.ply"), ("zip files","*.zip")))
+    print (filename)
+    fn = filename.split("/")[len(filename.split("/"))-1]
+    t = Toplevel()
+    t.title("Upload Model")
+    lbl_pname = Label(t,text="Choose Upload Location").pack()
+    v3 = IntVar()
+    rb_poj2 = Radiobutton(t, text="Projects", command=lambda: listproj(listbox2), variable=v3, value=1).pack()
+    rb_lib2 = Radiobutton(t, text="Libraries", command=lambda: listlib(listbox2), variable=v3, value=2).pack()
+    lb_header2 = ['id', 'name']
+    listbox2 = ttk.Treeview(t, columns=lb_header, show="headings")
+    listbox2.heading('id', text="id")
+    listbox2.column('id',minwidth=0,width=40, stretch=NO)
+    listbox2.heading('name', text="Name")
+    listbox2.column('name',minwidth=0,width=150, stretch=NO)
+    listbox2.pack()
+    lbl_pcattrib = Label(t,text="Attributes").pack()
+    ent_pcattrib = Entry(t)
+    ent_pcattrib.pack()
+    ent_pcattrib.insert(0, "-a None -s smooth -d normal")
+    lbl_pcattrib = Label(t,text="Position").pack()
+    ent_modPos = Entry(t)
+    ent_modPos.pack()
+    ent_modPos.insert(0, "0, 0, 0")
+    lbl_pcattrib = Label(t,text="Rotation").pack()
+    ent_modRot = Entry(t)
+    ent_modRot.pack()
+    ent_modRot.insert(0, "0.5, 0.0, 0.5")
+    lbl_pcattrib = Label(t,text="Scale").pack()
+    ent_modScl = Entry(t)
+    ent_modScl.pack()
+    ent_modScl.insert(0, "1, 1, 1")
+ 
+    btn_sendfile = Button(t,text ="Send File", command=lambda: sendmod()).pack()
+    
     print("upload model")
+
+    
             
 def mv_md():
     print ("move model")
@@ -675,23 +806,23 @@ uida.set("id")
 
 name = StringVar()
 lbl_name = Label(ctr_right,width =30, textvariable = name, anchor='e',font=("Arial", 12), bg="#c6bfd2", fg="black")
-name.set('name')
+name.set('Name')
 
 downl = StringVar()
-lbl_downl = Label(ctr_right, justify=RIGHT, textvariable = downl, anchor='e', wraplength= 180, font=("Arial", 12), bg="#c6bfd2", fg="black")
-downl.set("download link")
+lbl_downl = Label(ctr_right, justify=RIGHT, textvariable = downl, anchor='e', wraplength= 180, font=("Arial", 10), bg="#c6bfd2", fg="#063c53")
+downl.set("Download Link")
 
 size = StringVar()
 lbl_size = Label(ctr_right,width =30, textvariable = size,  anchor='e', font=("Arial", 12), bg="#c6bfd2", fg="black")
-size.set("size")
+size.set("File Size")
 
 cr8td = StringVar()
 lbl_cr8td = Label(ctr_right,width =30, textvariable = cr8td, anchor='e', font=("Arial", 12), bg="#c6bfd2", fg="black")
-cr8td.set("created")
+cr8td.set("Created")
 
 mod = StringVar()
-lbl_mod =Label(ctr_right,width =30, textvariable = mod, anchor='e', font=("Arial", 12), bg="#c6bfd2", fg="black")
-mod.set("model transformation")
+lbl_mod =Label(ctr_right, justify=RIGHT, textvariable = mod, wraplength= 180, anchor='e', font=("Arial", 10), bg="#c6bfd2", fg="#45025b")
+mod.set("Model Transformation")
 
 bt_uplpc = Button(ctr_right,text = "Upload Pointcloud", command=lambda: upload_pc(), anchor='s', highlightbackground="#c6bfd2")
 bt_uplmd = Button(ctr_right,text = "Upload Model", command=lambda: upload_md(), anchor='s', highlightbackground="#c6bfd2")
@@ -704,7 +835,7 @@ lbl_name.grid(row=1, sticky=W)
 lbl_downl.grid(row=2, sticky=E)
 lbl_size.grid(row=3, sticky=W)
 lbl_cr8td.grid(row=4, sticky=W)
-lbl_mod.grid(row=5, sticky=W)
+lbl_mod.grid(row=5, sticky=E)
 bt_uplpc.grid(row=6)
 bt_uplmd.grid(row=7)
 bt_mvmd.grid(row=8)
