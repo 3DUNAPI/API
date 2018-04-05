@@ -684,6 +684,43 @@ def upload_md():
     
             
 def mv_md():
+    #Get the IDs of the selected project and model from the main UI lists
+    ProjID = listbox.item(listbox.focus())['values'][0]
+    ModelID = lb_assets.item(lb_assets.focus())['values'][0]
+    print (ProjID)
+    print (ModelID)
+
+    
+    t = Toplevel()
+    t.title("Move Model")
+    lbl_pname = Label(t,text="Choose Upload Location").pack()
+    v3 = IntVar()
+    rb_poj2 = Radiobutton(t, text="Projects", command=lambda: listproj(listbox2), variable=v3, value=1).pack()
+    rb_lib2 = Radiobutton(t, text="Libraries", command=lambda: listlib(listbox2), variable=v3, value=2).pack()
+    lb_header2 = ['id', 'name']
+    listbox2 = ttk.Treeview(t, columns=lb_header, show="headings")
+    listbox2.heading('id', text="id")
+    listbox2.column('id',minwidth=0,width=40, stretch=NO)
+    listbox2.heading('name', text="Name")
+    listbox2.column('name',minwidth=0,width=150, stretch=NO)
+    listbox2.pack()
+    lbl_pcattrib = Label(t,text="Attributes").pack()
+    ent_pcattrib = Entry(t)
+    ent_pcattrib.pack()
+    ent_pcattrib.insert(0, "-a None -s smooth -d normal")
+    lbl_pcattrib = Label(t,text="Position").pack()
+    ent_modPos = Entry(t)
+    ent_modPos.pack()
+    ent_modPos.insert(0, "0, 0, 0")
+    lbl_pcattrib = Label(t,text="Rotation").pack()
+    ent_modRot = Entry(t)
+    ent_modRot.pack()
+    ent_modRot.insert(0, "0.5, 0.0, 0.5")
+    lbl_pcattrib = Label(t,text="Scale").pack()
+    ent_modScl = Entry(t)
+    ent_modScl.pack()
+    ent_modScl.insert(0, "1, 1, 1")
+    
     print ("move model")
 
 def cp_md():
@@ -695,13 +732,13 @@ root.geometry('{}x{}'.format(650, 500))
 
 
 # create all of the main containers
-top_frame = Frame(root, bg='#660066', width=450, height=50, pady=3)
-center = Frame(root, bg='#660066', width=50, height=40, padx=3, pady=3)
-btm_frame = Frame(root, bg='white', height=90, pady=3)
+top_frame = Frame(root, bg='#660066', width=450, pady=3)
+center = Frame(root, bg='#660066', width=50, padx=3, pady=3)
+btm_frame = Frame(root, bg='white', pady=3)
 
 
 # layout all of the main containers
-root.grid_rowconfigure(1, weight=1)
+root.grid_rowconfigure(1, weight=0)
 root.grid_columnconfigure(0, weight=1)
 
 top_frame.grid(row=0, sticky="ew")
@@ -736,21 +773,22 @@ show_token.grid(row=2,column=2, columnspan=4, sticky=W)
 center.grid_rowconfigure(0, weight=1)
 center.grid_columnconfigure(1, weight=1)
 
-ctr_left = Frame(center, bg='#c6bfd2', width=100, height=190,padx=3, pady=3)
-ctr_mid = Frame(center, bg='#c6bfd2', width=100, height=190, padx=3, pady=3)
-ctr_right = Frame(center, bg='#c6bfd2', width=250, height=190, padx=3, pady=3)
+ctr_left = Frame(center, bg='#c6bfd2', width=100, padx=3, pady=3)
+ctr_mid = Frame(center, bg='#c6bfd2', width=100, padx=3, pady=3)
+ctr_right = Frame(center, bg='#c6bfd2', width=250, padx=3, pady=3)
 
 ctr_left.grid(row=0, column=0, sticky="ns")
 ctr_mid.grid(row=0, column=1, sticky = "nsew")
 ctr_right.grid(row=0, column=2, sticky="ns")
 
 # create the widgets for the centre_left frame
-ctr_left.grid_rowconfigure(1, weight=1)
+ctr_left.grid_rowconfigure(1, weight=0)
 ctr_left.grid_columnconfigure(1, weight=1)
 
 v = IntVar()
 
 rb_poj = Radiobutton(ctr_left, text="Projects", command=lambda: listproj(listbox), variable=v, value=1, bg = "#c6bfd2")
+rb_lbl = Label(ctr_left, text='- - - - - - - - - - - - - - - ',font=("Arial", 12), bg="#c6bfd2", fg="white")
 rb_lib = Radiobutton(ctr_left, text="Libraries", command=lambda: listlib(listbox), variable=v, value=2, bg = "#c6bfd2")
 lb_header = ['id', 'name']
 listbox = ttk.Treeview(ctr_left, columns=lb_header, show="headings")
@@ -760,18 +798,22 @@ listbox.heading('name', text="Name")
 listbox.column('name',minwidth=0,width=150, stretch=NO)
 listbox.bind("<ButtonRelease-1>", updt_gr)
 
+
 #replaced with ttk tree   - listbox = Listbox(ctr_left)
 bt_addpr = Button(ctr_left,text="New Project", highlightbackground="#c6bfd2", command=lambda: add_Project())
+bt_delpr = Button(ctr_left,text="Delete Project", highlightbackground="#c6bfd2", command=lambda: add_Project())
 
 # layout the widgets in the centre_left frame
 
 rb_poj.grid(row=0)
-rb_lib.grid(row=1)
-listbox.grid(row=2)
-bt_addpr.grid(row=3)
+rb_lbl.grid(row=1)
+rb_lib.grid(row=2)
+listbox.grid(row=3)
+bt_addpr.grid(row=4)
+bt_delpr.grid(row=5)
 
 # create the widgets for the centre_mid frame
-ctr_mid.grid_rowconfigure(1, weight=1)
+ctr_mid.grid_rowconfigure(1, weight=0)
 ctr_mid.grid_columnconfigure(1, weight=1)
 
 v2 = IntVar()
@@ -788,6 +830,7 @@ lb_assets.column('name',minwidth=0,width=150, stretch=NO)
 lb_assets.bind("<ButtonRelease-1>", updt_as)
 
 bt_downl = Button(ctr_mid,text="Download", command=lambda: download(), highlightbackground="#c6bfd2")
+bt_delIt = Button(ctr_mid,text="Delete Item", command=lambda: download(), highlightbackground="#c6bfd2")
 
 
 
@@ -797,6 +840,7 @@ rb_md.grid(row=1)
 rb_ss.grid(row=2)
 lb_assets.grid(row=3)
 bt_downl.grid(row=4)
+bt_delIt.grid(row=5)
 
 
 # create the widgets for the centre_left frame
@@ -827,7 +871,7 @@ mod.set("Model Transformation")
 bt_uplpc = Button(ctr_right,text = "Upload Pointcloud", command=lambda: upload_pc(), anchor='s', highlightbackground="#c6bfd2")
 bt_uplmd = Button(ctr_right,text = "Upload Model", command=lambda: upload_md(), anchor='s', highlightbackground="#c6bfd2")
 bt_mvmd = Button(ctr_right,text = "Move Model", command=lambda: mv_md(), anchor='s', highlightbackground="#c6bfd2")
-bt_cpmd = Button(ctr_right,text = "copy Model", command=lambda: cp_md(), anchor='s', highlightbackground="#c6bfd2")
+bt_cpmd = Button(ctr_right,text = "Copy Model", command=lambda: cp_md(), anchor='s', highlightbackground="#c6bfd2")
 
 # layout the widgets in the centre_left frame
 lbl_id.grid(row=0, sticky=W)
@@ -845,7 +889,7 @@ bt_cpmd.grid(row=9)
 btm_frame.grid_rowconfigure(0, weight=1)
 btm_frame.grid_columnconfigure(0, weight=1)
 
-text_area= Text(btm_frame, height = 5,background="#c1c5d6")
+text_area= Text(btm_frame, background="#c1c5d6")
 
 # layout the widgets in the bottom frame
 text_area.grid(row=0,column=0,sticky=W+E)
