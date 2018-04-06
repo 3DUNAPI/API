@@ -74,21 +74,15 @@ def add_Project():
             'Content-Type': 'application/json',
             'token': show_token.get("1.0",'end-1c'),
         }
-        print (type( ent_pname.get()))
-        # the line below is for text widget
-        # print (txt_pdesc.get("1.0",END))
+        print (type(ent_pname.get()))
+
         print (txt_pdesc.get())
-               
-        print (lb_group.get(lb_group.curselection()[0]))
+        print (listbox4.item(listbox4.focus())['values'][0])
         print (type(ent_lat.get()))
         print (type(ent_lon.get()))
 
-        data = '{"name":"'+ ent_pname.get() +'","description": "'+ txt_pdesc.get() +'","group_id": ' + str(lb_group.get(lb_group.curselection()[0])) + ',"latitude": '+ str(ent_lat.get()) +',"longitude": '+ str(ent_lon.get()) +'}'
-        # create \n instead of single line characters
-        data2 = (json.loads(data, strict=False))
-        data3 = str(data)
-        print(data2)
-        print(data3)
+        data = '{"name":"'+ ent_pname.get() +'","description": "'+ txt_pdesc.get() +'","group_id": ' + str(listbox4.item(listbox4.focus())['values'][0]) + ',"latitude": '+ str(ent_lat.get()) +',"longitude": '+ str(ent_lon.get()) +'}'
+        print(data)
         response = requests.post('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
         print (response.text)
         t.destroy
@@ -103,8 +97,13 @@ def add_Project():
     txt_pdesc = Entry(t, background="grey", width = 45)
     txt_pdesc.pack()
     lbl_group = Label(t,text="Select a Group").pack()
-    lb_group = Listbox(t)
-    lb_group.pack()
+    lb_header4 = ['id', 'name']
+    listbox4 = ttk.Treeview(t, columns=lb_header, show="headings")
+    listbox4.heading('id', text="id")
+    listbox4.column('id',minwidth=0,width=40, stretch=NO)
+    listbox4.heading('name', text="Name")
+    listbox4.column('name',minwidth=0,width=150, stretch=NO)
+    listbox4.pack()
     lbl_lat = Label(t,text="Latitude(Decimal)").pack()
     ent_lat = Entry(t, background="grey", width = 10)
     ent_lat.pack()
@@ -131,12 +130,11 @@ def add_Project():
             print(len(y))
             i=0
             while i < len(y) :
-                gr_item = str(y[i]['id']) + '  ' + str(y[i]['name'])
-                lb_group.insert(END, gr_item)
+                listbox4.insert('','end', values= (y[i]['id'], y[i]['name']))
                 i +=1
         else:
             print(type(y))           
-            lb_group.insert(END, y['id'])
+            
 
     except OSError as err:
         print("OS error: {0}".format(err))
@@ -554,8 +552,10 @@ def upload_pc():
     lbl_pcattrib = Label(t,text="Attributes").pack()
     ent_pcattrib = Entry(t)
     ent_pcattrib.pack()
-    ent_pcattrib.insert(0, "-f xyzirgb -a RGB -intensity-range 0 65535 -color-range 0 255")
+    ent_pcattrib.insert(0, "-f xyzirgb -a RGB INTESNITY --intensity-range 0 65535 --color-range 0 255")
     btn_sendfile = Button(t,text ="Send File", command=lambda: sendpc()).pack()
+    bt_Cancel = Button(t, text = "Cancel",command= t.destroy)
+    bt_Cancel.pack()
     
     
 def upload_md():
@@ -682,6 +682,8 @@ def upload_md():
     ent_modScl.insert(0, "1, 1, 1")
  
     btn_sendfile = Button(t,text ="Send File", command=lambda: sendmod()).pack()
+    bt_Cancel = Button(t, text = "Cancel",command= t.destroy)
+    bt_Cancel.pack()
     
     print("upload model")
 
@@ -752,6 +754,8 @@ def mv_md():
         ent_modScl.insert(0, str(modprojloc['single response']['scale']))
 
         btn_sendfile = Button(t,text ="Move Model", command=lambda: movMod()).pack()
+        bt_Cancel = Button(t, text = "Cancel",command= t.destroy)
+        bt_Cancel.pack()
         
     else:
         text_area.delete('1.0', 'end')
@@ -828,13 +832,52 @@ def cp_md():
         ent_modScl.insert(0, str(modprojloc['single response']['scale']))
 
         btn_sendfile = Button(t,text ="Copy Model", command=lambda: copyMod()).pack()
+        bt_Cancel = Button(t, text = "Cancel",command= t.destroy)
+        bt_Cancel.pack()
         
     else:
         text_area.delete('1.0', 'end')
         text_area.insert(END, 'No valid IDs - Please select a Project and Model')
         print('No valid IDs - Please select a Project and Model')
  
-   
+
+def delProj():
+    #Case 1 - Project Selected
+    if v.get() == 1:
+        #Find the selected project ID
+        ProjID = listbox.item(listbox.focus())['values'][0]
+
+        #Send the API command with the relevant ID to delete the Project
+        headers = {
+        'Content-Type': 'application/json',
+        'token': show_token.get("1.0",'end-1c')
+        }
+
+        data = '{"id":' + str(ProjID) + '}'
+        response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+        print ('Project has been deleted')
+
+    #Case 2 - Library Selected
+    elif v.get() == 2:
+        #Find the selected library ID
+        LibID = listbox.item(listbox.focus())['values'][0]
+
+        #Send the API command with the relevant ID to delete the Project
+        headers = {
+        'Content-Type': 'application/json',
+        'token': show_token.get("1.0",'end-1c')
+        }
+
+        data = '{"id":' + str(LibID) + '}'
+        response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers, data=data)
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+        print ('Library has been deleted')
+
+    
+
 
 ###############################
     
@@ -913,7 +956,7 @@ listbox.bind("<ButtonRelease-1>", updt_gr)
 
 #replaced with ttk tree   - listbox = Listbox(ctr_left)
 bt_addpr = Button(ctr_left,text="New Project", highlightbackground="#c6bfd2", command=lambda: add_Project())
-bt_delpr = Button(ctr_left,text="Delete Project", highlightbackground="#c6bfd2", command=lambda: add_Project())
+bt_delpr = Button(ctr_left,text="Delete Project / Library", highlightbackground="#c6bfd2", command=lambda: delProj())
 
 # layout the widgets in the centre_left frame
 
@@ -945,8 +988,7 @@ bt_downl = Button(ctr_mid,text="Download", command=lambda: download(), highlight
 bt_delIt = Button(ctr_mid,text="Delete Item", command=lambda: download(), highlightbackground="#c6bfd2")
 
 
-
-# layout the widgets in the centre_left frame
+# layout the widgets in the centre_mid frame
 rb_pc.grid(row=0)
 rb_md.grid(row=1)
 rb_ss.grid(row=2)
@@ -955,13 +997,14 @@ bt_downl.grid(row=4)
 bt_delIt.grid(row=5)
 
 
-# create the widgets for the centre_left frame
+# create the widgets for the centre_right frame
+details_label = Label(ctr_right, text='Selected File Details:',font=("Arial", 14), bg="#c6bfd2", fg="white")
 uida = StringVar()
-lbl_id = Label(ctr_right,width =30, textvariable = uida, font=("Arial", 12), anchor='e', bg="#c6bfd2", fg="black")
+lbl_id = Label(ctr_right,width =30, textvariable = uida, font=("Arial", 10), anchor='e', bg="#c6bfd2", fg="black")
 uida.set("id")
 
 name = StringVar()
-lbl_name = Label(ctr_right,width =30, textvariable = name, anchor='e',font=("Arial", 12), bg="#c6bfd2", fg="black")
+lbl_name = Label(ctr_right,width =30, textvariable = name, anchor='e',font=("Arial", 10), bg="#c6bfd2", fg="black")
 name.set('Name')
 
 downl = StringVar()
@@ -969,11 +1012,11 @@ lbl_downl = Label(ctr_right, justify=RIGHT, textvariable = downl, anchor='e', wr
 downl.set("Download Link")
 
 size = StringVar()
-lbl_size = Label(ctr_right,width =30, textvariable = size,  anchor='e', font=("Arial", 12), bg="#c6bfd2", fg="black")
+lbl_size = Label(ctr_right,width =30, textvariable = size,  anchor='e', font=("Arial", 10), bg="#c6bfd2", fg="black")
 size.set("File Size")
 
 cr8td = StringVar()
-lbl_cr8td = Label(ctr_right,width =30, textvariable = cr8td, anchor='e', font=("Arial", 12), bg="#c6bfd2", fg="black")
+lbl_cr8td = Label(ctr_right,width =30, textvariable = cr8td, anchor='e', font=("Arial", 10), bg="#c6bfd2", fg="black")
 cr8td.set("Created")
 
 mod = StringVar()
@@ -985,17 +1028,18 @@ bt_uplmd = Button(ctr_right,text = "Upload Model", command=lambda: upload_md(), 
 bt_mvmd = Button(ctr_right,text = "Move Model", command=lambda: mv_md(), anchor='s', highlightbackground="#c6bfd2")
 bt_cpmd = Button(ctr_right,text = "Copy Model", command=lambda: cp_md(), anchor='s', highlightbackground="#c6bfd2")
 
-# layout the widgets in the centre_left frame
-lbl_id.grid(row=0, sticky=W)
-lbl_name.grid(row=1, sticky=W)
-lbl_downl.grid(row=2, sticky=E)
-lbl_size.grid(row=3, sticky=W)
-lbl_cr8td.grid(row=4, sticky=W)
-lbl_mod.grid(row=5, sticky=E)
-bt_uplpc.grid(row=6)
-bt_uplmd.grid(row=7)
-bt_mvmd.grid(row=8)
-bt_cpmd.grid(row=9)
+# layout the widgets in the centre_right frame
+details_label.grid(row=0, sticky=E)
+lbl_id.grid(row=1, sticky=W)
+lbl_name.grid(row=2, sticky=W)
+lbl_downl.grid(row=3, sticky=E)
+lbl_size.grid(row=4, sticky=W)
+lbl_cr8td.grid(row=5, sticky=W)
+lbl_mod.grid(row=6, sticky=E)
+bt_uplpc.grid(row=7)
+bt_uplmd.grid(row=8)
+bt_mvmd.grid(row=9)
+bt_cpmd.grid(row=10)
 
 # create the widgets for the bottom frame
 btm_frame.grid_rowconfigure(0, weight=1)
