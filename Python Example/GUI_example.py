@@ -13,8 +13,6 @@ import time
 
 
 
-
-
 def callback():
     headers = {
         'Content-Type': 'application/json',
@@ -24,6 +22,7 @@ def callback():
     data = '{"username":"' + entry_U.get() + '","password":"' + entry_P.get() + '"}'
  
     response = requests.get('https://api.3dusernet.com/3dusernetApi/api/sign_in.json', headers=headers, data=data)
+    text_area.delete('1.0', 'end')
     text_area.insert(END, response.text + '\n')
     x = json.loads(response.text)
     show_token.insert(END, x['token'])
@@ -93,7 +92,8 @@ def add_Project():
         response = requests.post('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
         print (response.text)
         t.destroy
-    
+
+    #Build the interface for the pop-up UI
     t = Toplevel()
     t.title("Add new Project")
     lbl_pname = Label(t,text="Project Name").pack()
@@ -101,7 +101,6 @@ def add_Project():
     ent_pname.pack()
     lbl_pdesc = Label(t,text="Project Description").pack()
     txt_pdesc = Entry(t, background="grey", width = 45)
-    #txt_pdesc = Text(t, background="grey", width = 45, height = 10) - can't get this to send correctly
     txt_pdesc.pack()
     lbl_group = Label(t,text="Select a Group").pack()
     lb_group = Listbox(t)
@@ -537,6 +536,8 @@ def upload_pc():
     filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("las files","*.las"),("laz files","*.laz"),("e57 files","*.e57"),("xyz files","*.xyz"),("ply files","*.ply")))
     print (filename)
     fn = filename.split("/")[len(filename.split("/"))-1]
+
+    #Build the interface for the pop-up UI
     t = Toplevel()
     t.title("Upload Pointcloud")
     lbl_pname = Label(t,text="Choose Upload Location").pack()
@@ -643,10 +644,13 @@ def upload_md():
             print("Usage: python chunk_uploader.py [file_path]")
             
         print("////// Model Uploaded")
-    
+
+    #Build the interface for the pop-up UI
     filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("stl files","*.stl"),("fbx files","*.fbx"),("ifc files","*.ifc"),("obj files","*.obj"),("ply files","*.ply"), ("zip files","*.zip")))
     print (filename)
     fn = filename.split("/")[len(filename.split("/"))-1]
+
+    #Build the interface for the pop-up UI
     t = Toplevel()
     t.title("Upload Model")
     lbl_pname = Label(t,text="Choose Upload Location").pack()
@@ -668,7 +672,7 @@ def upload_md():
     ent_modPos = Entry(t)
     ent_modPos.pack()
     ent_modPos.insert(0, "0, 0, 0")
-    lbl_pcattrib = Label(t,text="Rotation").pack()
+    lbl_pcattrib = Label(t,text="Rotation (Radians)").pack()
     ent_modRot = Entry(t)
     ent_modRot.pack()
     ent_modRot.insert(0, "0.5, 0.0, 0.5")
@@ -684,47 +688,155 @@ def upload_md():
     
             
 def mv_md():
-    #Get the IDs of the selected project and model from the main UI lists
-    ProjID = listbox.item(listbox.focus())['values'][0]
-    ModelID = lb_assets.item(lb_assets.focus())['values'][0]
-    print (ProjID)
-    print (ModelID)
+    ProjID = ""
+    ModelID = ""
+    
+    def movMod():
+        headers = {
+        'Content-Type': 'application/json',
+        'token': show_token.get("1.0",'end-1c')
+        }
+
+        data = '{"id":' + str(modprojlocID) + ',"scale":"' + str(ent_modScl.get()) + '","location":"' + str(ent_modPos.get()) + '","rotation":"' + str(ent_modRot.get()) + '","copy":"false"}'
+        print(data)
+        #Important to ensure the request is PUT
+        response = requests.put('https://api.3dusernet.com/3dusernetApi/api/models_orientation.json', headers=headers, data=data)
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+        modMovresp = json.loads(response.text)
+        
+        print('Model Position / Rotation / Scale Updated')
 
     
-    t = Toplevel()
-    t.title("Move Model")
-    lbl_pname = Label(t,text="Choose Upload Location").pack()
-    v3 = IntVar()
-    rb_poj2 = Radiobutton(t, text="Projects", command=lambda: listproj(listbox2), variable=v3, value=1).pack()
-    rb_lib2 = Radiobutton(t, text="Libraries", command=lambda: listlib(listbox2), variable=v3, value=2).pack()
-    lb_header2 = ['id', 'name']
-    listbox2 = ttk.Treeview(t, columns=lb_header, show="headings")
-    listbox2.heading('id', text="id")
-    listbox2.column('id',minwidth=0,width=40, stretch=NO)
-    listbox2.heading('name', text="Name")
-    listbox2.column('name',minwidth=0,width=150, stretch=NO)
-    listbox2.pack()
-    lbl_pcattrib = Label(t,text="Attributes").pack()
-    ent_pcattrib = Entry(t)
-    ent_pcattrib.pack()
-    ent_pcattrib.insert(0, "-a None -s smooth -d normal")
-    lbl_pcattrib = Label(t,text="Position").pack()
-    ent_modPos = Entry(t)
-    ent_modPos.pack()
-    ent_modPos.insert(0, "0, 0, 0")
-    lbl_pcattrib = Label(t,text="Rotation").pack()
-    ent_modRot = Entry(t)
-    ent_modRot.pack()
-    ent_modRot.insert(0, "0.5, 0.0, 0.5")
-    lbl_pcattrib = Label(t,text="Scale").pack()
-    ent_modScl = Entry(t)
-    ent_modScl.pack()
-    ent_modScl.insert(0, "1, 1, 1")
+    #Get the IDs of the selected project and model from the main UI lists
+    if v.get() == 1 and v2.get() == 2:
+        #Get values for the selected Project and Model
+        ProjID = listbox.item(listbox.focus())['values'][0]
+        ModelID = lb_assets.item(lb_assets.focus())['values'][0]
+        print (ProjID)
+        print (ModelID)
+
+        #Get the ModelProjectLocation id for the selected Project and Model
+        headers = {
+        'Content-Type': 'application/json',
+        'token': show_token.get("1.0",'end-1c')
+        }
+
+        data = '{"id":' + str(ProjID) + ',"model_id":' + str(ModelID) + '}'
+        
+        response = requests.get('https://api.3dusernet.com/3dusernetApi/api/models_orientation.json', headers=headers, data=data)
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+        modprojloc = json.loads(response.text)
+
+        modprojlocID = modprojloc['single response']['id']
+        
+        print('ModelProjectLocation = ', modprojlocID)
+
+        #Build the interface for the pop-up UI
+        t = Toplevel()
+        t.title("Move Model")
+        lbl_pname = Label(t,text="Change the Parameters").pack()
+ 
+        lbl_pcattrib = Label(t,text="Position").pack()
+        ent_modPos = Entry(t)
+        ent_modPos.pack()
+        ent_modPos.insert(0, str(modprojloc['single response']['position']))
+        lbl_pcattrib = Label(t,text="Rotation (Radians)").pack()
+        ent_modRot = Entry(t)
+        ent_modRot.pack()
+        ent_modRot.insert(0, str(modprojloc['single response']['rotation']))
+        lbl_pcattrib = Label(t,text="Scale").pack()
+        ent_modScl = Entry(t)
+        ent_modScl.pack()
+        ent_modScl.insert(0, str(modprojloc['single response']['scale']))
+
+        btn_sendfile = Button(t,text ="Move Model", command=lambda: movMod()).pack()
+        
+    else:
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, 'No valid IDs - Please select a Project and Model')
+        print('No valid IDs - Please select a Project and Model')
+ 
     
-    print ("move model")
+
+    
+ 
 
 def cp_md():
-    print("copy model")
+    ProjID = ""
+    ModelID = ""
+    
+    def copyMod():
+        headers = {
+        'Content-Type': 'application/json',
+        'token': show_token.get("1.0",'end-1c')
+        }
+
+        data = '{"id":' + str(modprojlocID) + ',"scale":"' + str(ent_modScl.get()) + '","location":"' + str(ent_modPos.get()) + '","rotation":"' + str(ent_modRot.get()) + '","copy":"true"}'
+        print(data)
+        #Important to ensure the request is PUT
+        response = requests.put('https://api.3dusernet.com/3dusernetApi/api/models_orientation.json', headers=headers, data=data)
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+        modCopresp = json.loads(response.text)
+        
+        print('Model copied to new Position / Rotation / Scale')
+
+    
+    #Get the IDs of the selected project and model from the main UI lists
+    if v.get() == 1 and v2.get() == 2:
+        #Get values for the selected Project and Model
+        ProjID = listbox.item(listbox.focus())['values'][0]
+        ModelID = lb_assets.item(lb_assets.focus())['values'][0]
+        print (ProjID)
+        print (ModelID)
+
+        #Get the ModelProjectLocation id for the selected Project and Model
+        headers = {
+        'Content-Type': 'application/json',
+        'token': show_token.get("1.0",'end-1c')
+        }
+
+        data = '{"id":' + str(ProjID) + ',"model_id":' + str(ModelID) + '}'
+        
+        response = requests.get('https://api.3dusernet.com/3dusernetApi/api/models_orientation.json', headers=headers, data=data)
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+        modprojloc = json.loads(response.text)
+
+        modprojlocID = modprojloc['single response']['id']
+        
+        print('ModelProjectLocation = ', modprojlocID)
+
+        #Build the interface for the pop-up UI
+        t = Toplevel()
+        t.title("Copy Model")
+        lbl_pname = Label(t,text="Enter the Parameters").pack()
+ 
+        lbl_pcattrib = Label(t,text="Position").pack()
+        ent_modPos = Entry(t)
+        ent_modPos.pack()
+        ent_modPos.insert(0, str(modprojloc['single response']['position']))
+        lbl_pcattrib = Label(t,text="Rotation (Radians)").pack()
+        ent_modRot = Entry(t)
+        ent_modRot.pack()
+        ent_modRot.insert(0, str(modprojloc['single response']['rotation']))
+        lbl_pcattrib = Label(t,text="Scale").pack()
+        ent_modScl = Entry(t)
+        ent_modScl.pack()
+        ent_modScl.insert(0, str(modprojloc['single response']['scale']))
+
+        btn_sendfile = Button(t,text ="Copy Model", command=lambda: copyMod()).pack()
+        
+    else:
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, 'No valid IDs - Please select a Project and Model')
+        print('No valid IDs - Please select a Project and Model')
+ 
+   
+
+###############################
     
 root = Tk()
 root.title('Model Definition')
@@ -746,7 +858,7 @@ center.grid(row=1, sticky="nsew")
 btm_frame.grid(row=3, sticky="ew")
 
 # create the widgets for the top frame
-model_label = Label(top_frame, text='3DUserNet API Test',font=("Arial", 16), bg="#660066", fg="white")
+model_label = Label(top_frame, text='3DUserNet API Example',font=("Arial", 16), bg="#660066", fg="white")
 user_label = Label(top_frame, text='UserName:', bg="#660066",fg="white")
 pass_label = Label(top_frame, text='Password:', bg="#660066",fg="white")
 app_label = Label(top_frame, text='AppID:', bg="#660066",fg="white")
