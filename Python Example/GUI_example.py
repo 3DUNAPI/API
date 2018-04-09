@@ -69,7 +69,7 @@ def add_Project():
 
     def sendProj():
         
-        # send data to add Project
+        #Send data to add Project
         headers = {
             'Content-Type': 'application/json',
             'token': show_token.get("1.0",'end-1c'),
@@ -85,6 +85,8 @@ def add_Project():
         print(data)
         response = requests.post('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
         print (response.text)
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
         t.destroy
 
     #Build the interface for the pop-up UI
@@ -144,7 +146,41 @@ def add_Project():
         print("Unexpected error:", sys.exc_info()[0])
         raise
 
+def add_Library():
 
+    def sendLib():
+        
+        #Send data to add Library
+        headers = {
+            'Content-Type': 'application/json',
+            'token': show_token.get("1.0",'end-1c'),
+        }
+        print (type(ent_lname.get()))
+        print (txt_ldesc.get())
+
+        data = '{"name":"'+ ent_lname.get() +'","description": "'+ txt_ldesc.get() +'"}'
+        print(data)
+        response = requests.post('https://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers, data=data)
+        print (response.text)
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+        t.destroy
+
+        
+    #Build the interface for the pop-up UI
+    t = Toplevel()
+    t.title("Add new Library")
+    lbl_lname = Label(t,text="Library Name").pack()
+    ent_lname = Entry(t, background="grey", width = 15)
+    ent_lname.pack()
+    lbl_ldesc = Label(t,text="Library Description").pack()
+    txt_ldesc = Entry(t, background="grey", width = 45)
+    txt_ldesc.pack()
+    
+    bt_Create = Button(t,text = "Create Library", command=lambda: sendLib())
+    bt_Create.pack()
+    bt_Cancel = Button(t, text = "Cancel",command= t.destroy)
+    bt_Cancel.pack()
 
 
 def listlib(table):
@@ -346,6 +382,7 @@ def updt_as(event):
         elif v2.get()==2 :
             print("mod")
             response = requests.get('https://api.3dusernet.com/3dusernetApi/api/models.json', headers=headers, data=data)
+            print(response.text)
             x = json.loads(response.text)
             y = x['models']
             
@@ -467,7 +504,12 @@ def upload_pc():
                 headers = {'Filename': os.path.basename(file_path)}        
                 headers['Token'] = show_token.get("1.0",'end-1c')
                 headers['Filesize'] = str(file_size)
-                headers['Projectid'] = str(listbox2.item(uid)['values'][0])
+                #Check if Project or Library Selected
+                if v3.get() == 1:
+                    headers['Projectid'] = str(listbox2.item(uid)['values'][0])
+                elif v3.get() == 2:
+                    headers['Libraryid'] = str(listbox2.item(uid)['values'][0])
+                
                 headers['filesize'] = str(file_size)
                 headers['Arguments'] = ent_pcattrib.get()
                 headers['Filetype'] = str(file_type)
@@ -581,7 +623,12 @@ def upload_md():
                 headers = {'Filename': os.path.basename(file_path)}        
                 headers['Token'] = show_token.get("1.0",'end-1c')
                 headers['Filesize'] = str(file_size)
-                headers['Projectid'] = str(listbox2.item(uid)['values'][0])
+                #Check if Project or Library Selected
+                if v3.get() == 1:
+                    headers['Projectid'] = str(listbox2.item(uid)['values'][0])
+                elif v3.get() == 2:
+                    headers['Libraryid'] = str(listbox2.item(uid)['values'][0])
+
                 headers['filesize'] = str(file_size)
                 headers['Arguments'] = ent_pcattrib.get()
                 headers['Filetype'] = str(file_type)
@@ -876,6 +923,192 @@ def delProj():
         text_area.insert(END, response.text + '\n')
         print ('Library has been deleted')
 
+
+def delItem():
+    
+    
+    #Case 1 - Project Items Selected
+    #Pointclouds
+    if v.get() == 1 and v2.get() ==1:
+
+        #Get values for the selected Project and Pointcloud
+        #Check something is selected
+        try:
+            index = str(listbox.selection()[0])
+            ProjID = listbox.item(listbox.focus())['values'][0]
+
+            try:
+                index2 = str(lb_assets.selection()[0])
+                pcID = lb_assets.item(lb_assets.focus())['values'][0]
+
+                print (ProjID)
+                print (pcID)
+
+                #Perform Deletion of Selected Object
+                headers = {
+                'Content-Type': 'application/json',
+                'token': show_token.get("1.0",'end-1c')
+                }
+
+                data = '{"point_cloud_id":' + str(pcID) + ',"project_id":' + str(ProjID) + '}'
+                print(data)
+                response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_project_point_cloud.json', headers=headers, data=data)
+
+                text_area.delete('1.0', 'end')
+                text_area.insert(END, response.text + '\n')
+                print ('Pointcloud has been deleted')
+            
+            except:
+                print ('Need to select a Pointcloud')
+                text_area.delete('1.0', 'end')
+                text_area.insert(END, 'Need to select a Pointcloud' + '\n')
+            
+        except IndexError:
+            print ('Need to select a Project')
+            text_area.delete('1.0', 'end')
+            text_area.insert(END, 'Need to select a Project' + '\n')
+
+    #Models
+    elif v.get() == 1 and v2.get() == 2:
+        
+        #Get values for the selected Project and Pointcloud
+        #Check something is selected
+        try:
+            index = str(listbox.selection()[0])
+            ProjID = listbox.item(listbox.focus())['values'][0]
+
+            try:
+                index2 = str(lb_assets.selection()[0])
+                modID = lb_assets.item(lb_assets.focus())['values'][0]
+
+                print (ProjID)
+                print (modID)
+
+                #Perform Deletion of Selected Object
+                headers = {
+                'Content-Type': 'application/json',
+                'token': show_token.get("1.0",'end-1c')
+                }
+
+                data = '{"model_id":' + str(modID) + ',"project_id":' + str(ProjID) + '}'
+                print(data)
+                response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_project_model.json', headers=headers, data=data)
+
+                text_area.delete('1.0', 'end')
+                text_area.insert(END, response.text + '\n')
+                print ('Model has been deleted')
+            
+            except:
+                print ('Need to select a Model')
+                text_area.delete('1.0', 'end')
+                text_area.insert(END, 'Need to select a Model' + '\n')
+            
+        except IndexError:
+            print ('Need to select a Project')
+            text_area.delete('1.0', 'end')
+            text_area.insert(END, 'Need to select a Project' + '\n')
+
+        
+    #Snapshots
+    elif v.get() == 1 and v2.get() ==3:
+        print ('Cannot Delete Snapshots')
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, 'Cannot Delete Snapshots' + '\n')
+        
+
+
+    
+    #Case 2 - Library Items Selected
+    #Pointclouds
+    if v.get() == 2 and v2.get() ==1:
+
+        #Get values for the selected Library and Pointcloud
+        #Check something is selected
+        try:
+            index = str(listbox.selection()[0])
+            LibID = listbox.item(listbox.focus())['values'][0]
+
+            try:
+                index2 = str(lb_assets.selection()[0])
+                pcID = lb_assets.item(lb_assets.focus())['values'][0]
+
+                print (LibID)
+                print (pcID)
+
+                #Perform Deletion of Selected Object
+                headers = {
+                'Content-Type': 'application/json',
+                'token': show_token.get("1.0",'end-1c')
+                }
+
+                data = '{"point_clouds_ids":[' + str(pcID) + '],"library":' + str(LibID) + '}'
+                print(data)
+                response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_library_point_cloud.json', headers=headers, data=data)
+
+                text_area.delete('1.0', 'end')
+                text_area.insert(END, response.text + '\n')
+                print ('Pointcloud has been deleted')
+            
+            except:
+                print ('Need to select a Pointcloud')
+                text_area.delete('1.0', 'end')
+                text_area.insert(END, 'Need to select a Pointcloud' + '\n')
+            
+        except IndexError:
+            print ('Need to select a Library')
+            text_area.delete('1.0', 'end')
+            text_area.insert(END, 'Need to select a Library' + '\n')
+
+          
+    #Models
+    elif v.get() == 2 and v2.get() == 2:
+
+        #Get values for the selected Project and Pointcloud
+        #Check something is selected
+        try:
+            index = str(listbox.selection()[0])
+            LibID = listbox.item(listbox.focus())['values'][0]
+
+            try:
+                index2 = str(lb_assets.selection()[0])
+                modID = lb_assets.item(lb_assets.focus())['values'][0]
+
+                print (LibID)
+                print (modID)
+
+                #Perform Deletion of Selected Object
+                headers = {
+                'Content-Type': 'application/json',
+                'token': show_token.get("1.0",'end-1c')
+                }
+
+                data = '{"models_ids":[' + str(modID) + '],"library":' + str(LibID) + '}'
+                print(data)
+                response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_library_model.json', headers=headers, data=data)
+
+                text_area.delete('1.0', 'end')
+                text_area.insert(END, response.text + '\n')
+                print ('Model has been deleted')
+            
+            except:
+                print ('Need to select a Model')
+                text_area.delete('1.0', 'end')
+                text_area.insert(END, 'Need to select a Model' + '\n')
+            
+        except IndexError:
+            print ('Need to select a Library')
+            text_area.delete('1.0', 'end')
+            text_area.insert(END, 'Need to select a Library' + '\n')
+        
+        
+    #Snapshots
+    elif v.get() == 2 and v2.get() ==3:
+        print ('Cannot Delete Snapshots')
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, 'Cannot Delete Snapshots' + '\n')
+    
+           
+
     
 
 
@@ -883,7 +1116,7 @@ def delProj():
     
 root = Tk()
 root.title('Model Definition')
-root.geometry('{}x{}'.format(650, 500))
+root.geometry('{}x{}'.format(650, 550))
 
 
 # create all of the main containers
@@ -956,6 +1189,7 @@ listbox.bind("<ButtonRelease-1>", updt_gr)
 
 #replaced with ttk tree   - listbox = Listbox(ctr_left)
 bt_addpr = Button(ctr_left,text="New Project", highlightbackground="#c6bfd2", command=lambda: add_Project())
+bt_addLib = Button(ctr_left,text="New Library", highlightbackground="#c6bfd2", command=lambda: add_Library())
 bt_delpr = Button(ctr_left,text="Delete Project / Library", highlightbackground="#c6bfd2", command=lambda: delProj())
 
 # layout the widgets in the centre_left frame
@@ -965,7 +1199,8 @@ rb_lbl.grid(row=1)
 rb_lib.grid(row=2)
 listbox.grid(row=3)
 bt_addpr.grid(row=4)
-bt_delpr.grid(row=5)
+bt_addLib.grid(row=5)
+bt_delpr.grid(row=6)
 
 # create the widgets for the centre_mid frame
 ctr_mid.grid_rowconfigure(1, weight=0)
@@ -985,7 +1220,7 @@ lb_assets.column('name',minwidth=0,width=150, stretch=NO)
 lb_assets.bind("<ButtonRelease-1>", updt_as)
 
 bt_downl = Button(ctr_mid,text="Download", command=lambda: download(), highlightbackground="#c6bfd2")
-bt_delIt = Button(ctr_mid,text="Delete Item", command=lambda: download(), highlightbackground="#c6bfd2")
+bt_delIt = Button(ctr_mid,text="Delete Object", command=lambda: delItem(), highlightbackground="#c6bfd2")
 
 
 # layout the widgets in the centre_mid frame
