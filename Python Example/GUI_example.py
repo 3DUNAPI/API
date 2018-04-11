@@ -87,7 +87,7 @@ def add_Project():
         print (response.text)
         text_area.delete('1.0', 'end')
         text_area.insert(END, response.text + '\n')
-        t.destroy
+        t.destroy()
 
     #Build the interface for the pop-up UI
     t = Toplevel()
@@ -166,7 +166,7 @@ def upd_Project():
         print (response.text)
         text_area.delete('1.0', 'end')
         text_area.insert(END, response.text + '\n')
-        t.destroy
+        t.destroy()
     
     
     #Get ID of selected Project
@@ -257,7 +257,7 @@ def upd_Project():
     else:
         print('Please select a Project')
         text_area.delete('1.0', 'end')
-        text_area.insert(END, 'Please slelect a Project')
+        text_area.insert(END, 'Please select a Project')
 
     
     
@@ -281,7 +281,7 @@ def add_Library():
         print (response.text)
         text_area.delete('1.0', 'end')
         text_area.insert(END, response.text + '\n')
-        t.destroy
+        t.destroy()
 
         
     #Build the interface for the pop-up UI
@@ -298,6 +298,77 @@ def add_Library():
     bt_Create.pack()
     bt_Cancel = Button(t, text = "Cancel",command= t.destroy)
     bt_Cancel.pack()
+
+
+
+def upd_Library():
+
+    def updLib():
+        #Send Data to update the Library
+        headers = {
+            'Content-Type': 'application/json',
+            'token': show_token.get("1.0",'end-1c'),
+        }
+        print (type(ent_lname.get()))
+        print (txt_ldesc.get())
+
+        data = '{"name":"'+ ent_lname.get() +'","description": "'+ txt_ldesc.get() +'", "id":'+str(LibID)+'}'
+        print(data)
+        response = requests.put('https://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers, data=data)
+        print (response.text)
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+        t.destroy()
+        print('Updated Library')
+
+    #Check Library List is selected
+    if v.get()==2:
+        #Get ID of selected Library
+        LibID = listbox.item(listbox.focus())['values'][0]
+
+        #Get Library Details
+        headers = {
+            'Content-Type': 'application/json',
+            'token': show_token.get("1.0",'end-1c'),
+        }
+
+        data = '{"id":'+ str(LibID) +'}'
+        print(data)
+        response = requests.get('https://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers, data=data)
+        print (response.text)
+        x = json.loads(response.text)
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+        
+
+        #Build the interface for the pop-up UI
+        t = Toplevel()
+        t.title("Update Library")
+        lbl_lname = Label(t,text="Library Name").pack()
+        ent_lname = Entry(t, background="grey", width = 15)
+        ent_lname.insert(END,str(x['libraries']['name']))
+        ent_lname.pack()
+        lbl_ldesc = Label(t,text="Library Description").pack()
+        txt_ldesc = Entry(t, background="grey", width = 45)
+        txt_ldesc.insert(END,str(x['libraries']['description']))
+        txt_ldesc.pack()
+        
+        bt_update = Button(t,text = "Update Library", command=lambda: updLib())
+        bt_update.pack()
+        bt_Cancel = Button(t, text = "Cancel",command= t.destroy)
+        bt_Cancel.pack()
+
+        
+
+    else: 
+        print('Please select a Library')
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, 'Please select a Library')
+
+
+    print('Update Library')
+
+
 
 
 def listlib(table):
@@ -1274,8 +1345,8 @@ entry_U = Entry(top_frame, background="white", width = 15)
 entry_P = Entry(top_frame, show="*", background="white", width = 15)
 entry_A = Entry(top_frame, background="white", width = 15)
 get_token = Button(top_frame, bg="#660066", highlightbackground="#660066", text="OK", command=callback)
-token_label = Label(top_frame, text='Token:', bg="#660066",fg="white")
-show_token = Text(top_frame, height = 1,background="lightgrey", width = 50)
+token_label = Label(top_frame, text='= Token', bg="#660066",fg="white")
+show_token = Text(top_frame, height = 1,background="lightgrey", width = 70)
 
 # layout the widgets in the top frame
 model_label.grid(row=0, columnspan=8)
@@ -1285,9 +1356,9 @@ app_label.grid(row=1, column=4)
 entry_U.grid(row=1, column=1)
 entry_P.grid(row=1, column=3)
 entry_A.grid(row=1, column=5)
-get_token.grid(row=2,column=0, sticky=E)
-token_label.grid(row=2,column=1, sticky=E)
-show_token.grid(row=2,column=2, columnspan=4, sticky=W)
+get_token.grid(row=2,column=0, sticky=W)
+token_label.grid(row=2,column=5, sticky=E)
+show_token.grid(row=2,column=1, columnspan=5, sticky=W)
 
 # create the center widgets
 center.grid_rowconfigure(0, weight=1)
@@ -1323,6 +1394,7 @@ listbox.bind("<ButtonRelease-1>", updt_gr)
 bt_addpr = Button(ctr_left,text="New Project", highlightbackground="#c6bfd2", command=lambda: add_Project())
 bt_updpr = Button(ctr_left,text="Update Project", highlightbackground="#c6bfd2", command=lambda: upd_Project())
 bt_addLib = Button(ctr_left,text="New Library", highlightbackground="#c6bfd2", command=lambda: add_Library())
+bt_updLib = Button(ctr_left,text="Update Library", highlightbackground="#c6bfd2", command=lambda: upd_Library())
 bt_delpr = Button(ctr_left,text="Delete Project / Library", highlightbackground="#c6bfd2", command=lambda: delProj())
 
 # layout the widgets in the centre_left frame
@@ -1334,7 +1406,8 @@ listbox.grid(row=3)
 bt_addpr.grid(row=4)
 bt_updpr.grid(row=5)
 bt_addLib.grid(row=6)
-bt_delpr.grid(row=7)
+bt_updLib.grid(row=7)
+bt_delpr.grid(row=8)
 
 # create the widgets for the centre_mid frame
 ctr_mid.grid_rowconfigure(1, weight=0)
