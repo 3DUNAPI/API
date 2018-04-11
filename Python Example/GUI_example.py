@@ -146,6 +146,123 @@ def add_Project():
         print("Unexpected error:", sys.exc_info()[0])
         raise
 
+def upd_Project():
+    
+    def updProj():
+        #Update the Project
+        headers = {
+            'Content-Type': 'application/json',
+            'token': show_token.get("1.0",'end-1c'),
+        }
+        print (type(ent_pname.get()))
+        print (txt_pdesc.get())
+        print (listbox5.item(listbox5.focus())['values'][0])
+        print (type(ent_lat.get()))
+        print (type(ent_lon.get()))
+
+        data = '{"name":"'+ ent_pname.get() +'","description": "'+ txt_pdesc.get() +'","group_id": ' + str(listbox5.item(listbox5.focus())['values'][0]) + ',"latitude": '+ str(ent_lat.get()) +',"longitude": '+ str(ent_lon.get()) +',"id":'+ str(ProjID) + '}'
+        print(data)
+        response = requests.put('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
+        print (response.text)
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+        t.destroy
+    
+    
+    #Get ID of selected Project
+    if v.get()==1:
+        ProjID = listbox.item(listbox.focus())['values'][0]
+        print(ProjID)
+
+        #Get Project Details
+        headers = {
+            'Content-Type': 'application/json',
+            'token': show_token.get("1.0",'end-1c'),
+        }
+
+        data = '{"id":'+ str(ProjID) +'}'
+        print(data)
+        response = requests.get('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
+        print (response.text)
+        x = json.loads(response.text)
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+        print(x['projects'])
+
+        currGroup = 'Current Group is: ' + str(x['projects']['group_id'])
+
+        #Enter New Details (Prepopulate with Existing Details)
+        #Build the interface for the pop-up UI
+        t = Toplevel()
+        t.title("Update Project")
+        lbl_pname = Label(t,text="Project Name").pack()
+        ent_pname = Entry(t, background="grey", width = 15)
+        ent_pname.insert(END, str(x['projects']['name']))
+        ent_pname.pack()
+        lbl_pdesc = Label(t,text="Project Description").pack()
+        txt_pdesc = Entry(t, background="grey", width = 45)
+        txt_pdesc.insert(END, str(x['projects']['description']))
+        txt_pdesc.pack()
+        lbl_group = Label(t,text="Select a Group").pack()
+        lbl_group2 = Label(t,text=currGroup).pack()
+        
+        lb_header5 = ['id', 'name']
+        listbox5 = ttk.Treeview(t, columns=lb_header, show="headings")
+        listbox5.heading('id', text="id")
+        listbox5.column('id',minwidth=0,width=40, stretch=NO)
+        listbox5.heading('name', text="Name")
+        listbox5.column('name',minwidth=0,width=150, stretch=NO)
+        listbox5.pack()
+        lbl_lat = Label(t,text="Latitude(Decimal)").pack()
+        ent_lat = Entry(t, background="grey", width = 10)
+        ent_lat.insert(END, str(x['projects']['latitude']))
+        ent_lat.pack()
+        lbl_lon = Label(t,text="Longitute(Decimal)").pack()
+        ent_lon = Entry(t, background="grey", width = 10)
+        ent_lon.insert(END, str(x['projects']['longitude']))
+        ent_lon.pack()
+        bt_Create = Button(t,text = "Update Project", command=lambda: updProj())
+        bt_Create.pack()
+        bt_Cancel = Button(t, text = "Cancel",command= t.destroy)
+        bt_Cancel.pack()
+
+        # get group data and add to listbox
+        headers = {
+            'Content-Type': 'application/json',
+            'token': show_token.get("1.0",'end-1c'),
+        }
+
+        response = requests.get('https://api.3dusernet.com/3dusernetApi/api/groups.json', headers=headers)
+        x2 = json.loads(response.text)
+        try:
+            y = x2['groups']
+            if type(y) is list:
+                print(y[1])
+                print(len(y))
+                i=0
+                while i < len(y) :
+                    listbox5.insert('','end', values= (y[i]['id'], y[i]['name']))
+                    i +=1
+            else:
+                print(type(y))
+        except OSError as err:
+            print("OS error: {0}".format(err))
+        except ValueError:
+            print("Could not convert data to an integer.")  
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+            raise
+
+
+    else:
+        print('Please select a Project')
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, 'Please slelect a Project')
+
+    
+    
+
+
 def add_Library():
 
     def sendLib():
@@ -984,13 +1101,28 @@ def delItem():
                 print (ProjID)
                 print (modID)
 
+                #Get the ModelProjectLocation id for the selected Project and Model
+                headers = {
+                'Content-Type': 'application/json',
+                'token': show_token.get("1.0",'end-1c')
+                }
+
+                data = '{"id":' + str(ProjID) + ',"model_id":' + str(modID) + '}'
+                
+                response = requests.get('https://api.3dusernet.com/3dusernetApi/api/models_orientation.json', headers=headers, data=data)
+                text_area.delete('1.0', 'end')
+                text_area.insert(END, response.text + '\n')
+                modprojloc = json.loads(response.text)
+
+                modprojlocID = modprojloc['single response']['id']
+
                 #Perform Deletion of Selected Object
                 headers = {
                 'Content-Type': 'application/json',
                 'token': show_token.get("1.0",'end-1c')
                 }
 
-                data = '{"model_id":' + str(modID) + ',"project_id":' + str(ProjID) + '}'
+                data = '{"model_id":' + str(modID) + ',"project_id":' + str(ProjID) + ',"model_project_location_id":' + str(modprojlocID) +'}'
                 print(data)
                 response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_project_model.json', headers=headers, data=data)
 
@@ -1116,7 +1248,7 @@ def delItem():
     
 root = Tk()
 root.title('Model Definition')
-root.geometry('{}x{}'.format(650, 550))
+root.geometry('{}x{}'.format(650, 600))
 
 
 # create all of the main containers
@@ -1189,6 +1321,7 @@ listbox.bind("<ButtonRelease-1>", updt_gr)
 
 #replaced with ttk tree   - listbox = Listbox(ctr_left)
 bt_addpr = Button(ctr_left,text="New Project", highlightbackground="#c6bfd2", command=lambda: add_Project())
+bt_updpr = Button(ctr_left,text="Update Project", highlightbackground="#c6bfd2", command=lambda: upd_Project())
 bt_addLib = Button(ctr_left,text="New Library", highlightbackground="#c6bfd2", command=lambda: add_Library())
 bt_delpr = Button(ctr_left,text="Delete Project / Library", highlightbackground="#c6bfd2", command=lambda: delProj())
 
@@ -1199,8 +1332,9 @@ rb_lbl.grid(row=1)
 rb_lib.grid(row=2)
 listbox.grid(row=3)
 bt_addpr.grid(row=4)
-bt_addLib.grid(row=5)
-bt_delpr.grid(row=6)
+bt_updpr.grid(row=5)
+bt_addLib.grid(row=6)
+bt_delpr.grid(row=7)
 
 # create the widgets for the centre_mid frame
 ctr_mid.grid_rowconfigure(1, weight=0)
