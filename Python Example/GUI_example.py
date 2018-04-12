@@ -1309,7 +1309,7 @@ def delItem():
     #Models
     elif v.get() == 2 and v2.get() == 2:
 
-        #Get values for the selected Project and Pointcloud
+        #Get values for the selected Library and Pointcloud
         #Check something is selected
         try:
             index = str(listbox.selection()[0])
@@ -1349,9 +1349,43 @@ def delItem():
         
     #Snapshots
     elif v.get() == 2 and v2.get() ==3:
-        print ('Cannot Delete Snapshots')
-        text_area.delete('1.0', 'end')
-        text_area.insert(END, 'Cannot Delete Snapshots' + '\n')
+        
+        #Get values for the selected Library and Snapshot
+        #Check something is selected
+        try:
+            index = str(listbox.selection()[0])
+            LibID = listbox.item(listbox.focus())['values'][0]
+
+            try:
+                index2 = str(lb_assets.selection()[0])
+                snapID = lb_assets.item(lb_assets.focus())['values'][0]
+
+                print (LibID)
+                print (snapID)
+
+                #Perform Deletion of Selected Object
+                headers = {
+                'Content-Type': 'application/json',
+                'token': show_token.get("1.0",'end-1c')
+                }
+
+                data = '{"snapshots_ids":[' + str(snapID) + '],"library":' + str(LibID) + '}'
+                print(data)
+                response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_library_snapshot.json', headers=headers, data=data)
+
+                text_area.delete('1.0', 'end')
+                text_area.insert(END, response.text + '\n')
+                print ('Snapshot has been deleted')
+            
+            except:
+                print ('Need to select a Snapshot')
+                text_area.delete('1.0', 'end')
+                text_area.insert(END, 'Need to select a Snapshot' + '\n')
+            
+        except IndexError:
+            print ('Need to select a Library')
+            text_area.delete('1.0', 'end')
+            text_area.insert(END, 'Need to select a Library' + '\n')
     
            
 
