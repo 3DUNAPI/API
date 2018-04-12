@@ -701,6 +701,7 @@ def upload_pc():
                 headers['filesize'] = str(file_size)
                 headers['Arguments'] = ent_pcattrib.get()
                 headers['Filetype'] = str(file_type)
+                headers['Description'] = ent_pcDesc.get()
                 #headers['location'] = '10, 10, 10'
                 #headers['rotation'] = '0.5, 0, 0.5'
                 #headers['scale'] = '1, 1, 1'
@@ -760,6 +761,7 @@ def upload_pc():
             print("Usage: python chunk_uploader.py [file_path]")
             
         print("////// Pointcloud Uploaded")
+        t.destroy()
     
     filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("las files","*.las"),("laz files","*.laz"),("e57 files","*.e57"),("xyz files","*.xyz"),("ply files","*.ply")))
     print (filename)
@@ -780,6 +782,9 @@ def upload_pc():
     listbox2.column('name',minwidth=0,width=150, stretch=NO)
     listbox2.pack()
     lbl_pcattrib = Label(t,text="Attributes").pack()
+    lbl_pcDesc = Label(t,text="Enter Description").pack()
+    ent_pcDesc = Entry(t)
+    ent_pcDesc.pack()
     ent_pcattrib = Entry(t)
     ent_pcattrib.pack()
     ent_pcattrib.insert(0, "-f xyzirgb -a RGB INTESNITY --intensity-range 0 65535 --color-range 0 255")
@@ -818,7 +823,8 @@ def upload_md():
                     headers['Libraryid'] = str(listbox2.item(uid)['values'][0])
 
                 headers['filesize'] = str(file_size)
-                headers['Arguments'] = ent_pcattrib.get()
+                headers['Arguments'] = ent_modattrib.get()
+                headers['Description'] = ent_modDesc.get()
                 headers['Filetype'] = str(file_type)
                 headers['location'] = ent_modPos.get()
                 headers['rotation'] = ent_modRot.get()
@@ -871,7 +877,7 @@ def upload_md():
         try:
             file_path = filename
             file_type = "Model"
-            file_arg = ent_pcattrib.get()
+            file_arg = ent_modattrib.get()
             print('Uploading file:', file_path)
             client.upload_file(file_path, file_type, file_arg)
         except IndexError:
@@ -879,6 +885,7 @@ def upload_md():
             print("Usage: python chunk_uploader.py [file_path]")
             
         print("////// Model Uploaded")
+        t.destroy()
 
     #Build the interface for the pop-up UI
     filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("stl files","*.stl"),("fbx files","*.fbx"),("ifc files","*.ifc"),("obj files","*.obj"),("ply files","*.ply"), ("zip files","*.zip")))
@@ -899,19 +906,22 @@ def upload_md():
     listbox2.heading('name', text="Name")
     listbox2.column('name',minwidth=0,width=150, stretch=NO)
     listbox2.pack()
-    lbl_pcattrib = Label(t,text="Attributes").pack()
-    ent_pcattrib = Entry(t)
-    ent_pcattrib.pack()
-    ent_pcattrib.insert(0, "-a None -s smooth -d normal")
-    lbl_pcattrib = Label(t,text="Position").pack()
+    lbl_modDesc = Label(t,text="Enter Description").pack()
+    ent_modDesc = Entry(t)
+    ent_modDesc.pack()
+    lbl_modattrib = Label(t,text="Attributes").pack()
+    ent_modattrib = Entry(t)
+    ent_modattrib.pack()
+    ent_modattrib.insert(0, "-a None -s smooth -d normal")
+    lbl_modPosattrib = Label(t,text="Position").pack()
     ent_modPos = Entry(t)
     ent_modPos.pack()
     ent_modPos.insert(0, "0, 0, 0")
-    lbl_pcattrib = Label(t,text="Rotation (Radians)").pack()
+    lbl_modRotattrib = Label(t,text="Rotation (Radians)").pack()
     ent_modRot = Entry(t)
     ent_modRot.pack()
     ent_modRot.insert(0, "0.5, 0.0, 0.5")
-    lbl_pcattrib = Label(t,text="Scale").pack()
+    lbl_modSclattrib = Label(t,text="Scale").pack()
     ent_modScl = Entry(t)
     ent_modScl.pack()
     ent_modScl.insert(0, "1, 1, 1")
@@ -1214,12 +1224,45 @@ def delItem():
         
     #Snapshots
     elif v.get() == 1 and v2.get() ==3:
-        print ('Cannot Delete Snapshots')
-        text_area.delete('1.0', 'end')
-        text_area.insert(END, 'Cannot Delete Snapshots' + '\n')
+
+        #Get values for the selected Project and Snapshot
+        #Check something is selected
+        try:
+            index = str(listbox.selection()[0])
+            ProjID = listbox.item(listbox.focus())['values'][0]
+
+            try:
+                index2 = str(lb_assets.selection()[0])
+                snapID = lb_assets.item(lb_assets.focus())['values'][0]
+
+                print (ProjID)
+                print (snapID)
+
+                #Get the ModelProjectLocation id for the selected Project and Model
+                headers = {
+                'Content-Type': 'application/json',
+                'token': show_token.get("1.0",'end-1c')
+                }
+
+                data = '{"snapshot_id":' + str(snapID) + ',"project_id":' + str(ProjID) + '}'
+                
+                response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_project_snapshot.json', headers=headers, data=data)
+                text_area.delete('1.0', 'end')
+                text_area.insert(END, response.text + '\n')
+
+                print ('Snapshot has been deleted')
+            
+            except:
+                print ('Need to select a Snapshot')
+                text_area.delete('1.0', 'end')
+                text_area.insert(END, 'Need to select a Snapshot' + '\n')
+            
+        except IndexError:
+            print ('Need to select a Project')
+            text_area.delete('1.0', 'end')
+            text_area.insert(END, 'Need to select a Project' + '\n')
+
         
-
-
     
     #Case 2 - Library Items Selected
     #Pointclouds
