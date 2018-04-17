@@ -1167,7 +1167,7 @@ def delItem():
     #Models
     elif v.get() == 1 and v2.get() == 2:
         
-        #Get values for the selected Project and Pointcloud
+        #Get values for the selected Project and Model
         #Check something is selected
         try:
             index = str(listbox.selection()[0])
@@ -1194,6 +1194,7 @@ def delItem():
                 modprojloc = json.loads(response.text)
 
                 modprojlocID = modprojloc['single response']['id']
+                print(modprojlocID)
 
                 #Perform Deletion of Selected Object
                 headers = {
@@ -1465,9 +1466,87 @@ def updPC():
         text_area.insert(END, 'Please select a Pointcloud')
         print('Please select a Pointcloud')
 
-    print('Updating Pointloud')
 
 def updMod():
+
+    def sendmodUpd():
+        fileLoc =  filedialog.askopenfilename(initialdir = "/",title = "Select Thumbnail",filetypes = (("jpg files","*.jpg"),("png files","*.png"),("bmp files","*.bmp")))
+        print(str(fileLoc))
+        fln = fileLoc.split("/")[len(fileLoc.split("/"))-1]
+        print(fln)
+        
+        #Send Data for Pointcloud Update
+        multipart_data = MultipartEncoder(
+            fields={
+                    # a file upload field
+                    'files':(str(fln), open(str(fileLoc), 'rb'), 'image/jpeg'),
+                    # plain text fields
+                    'id':str(x['models']['id']), 
+                    'description':str(ent_modDesc.get()),
+                    'file_name':str(ent_modName.get()),
+                   }
+            )
+        print(multipart_data)
+
+        response = requests.put('https://api.3dusernet.com/3dusernetApi/api/models.json', data=multipart_data, headers={
+            #Important to note different type of content in the header here
+            'Content-Type': multipart_data.content_type,
+            'token': show_token.get("1.0",'end-1c'),
+        })
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+        print ('Model has been Updated')
+        t.destroy()
+
+
+
+    #Check if a Model is selected and get ID
+    if v2.get()==2:
+        if lb_assets.focus() == "" :
+            text_area.delete('1.0', 'end')
+            text_area.insert(END, 'Please select a Model')
+            print('Please select a Model')
+
+        else:
+            #Get Name & Description of Pointcloud
+            headers = {
+                'Content-Type': 'application/json',
+                'token': show_token.get("1.0",'end-1c'),
+            }
+            uid = lb_assets.focus()
+            print (lb_assets.item(uid)['values'][0])
+            data = '{ "id": '+ str(lb_assets.item(uid)['values'][0]) + '}'
+
+            response = requests.get('https://api.3dusernet.com/3dusernetApi/api/models.json', headers=headers, data=data)
+            x = json.loads(response.text)
+            y = x['models']
+            print(y)
+
+            
+
+            #Build the interface for the pop-up UI
+            t = Toplevel()
+            t.title("Update Model")
+            
+            lbl_modName = Label(t,text="Name").pack()
+            ent_modName = Entry(t)
+            ent_modName.insert(END,str(x['models']['file_name']))
+            ent_modName.pack()
+            lbl_modDesc = Label(t,text="Description").pack()
+            ent_modDesc = Entry(t)
+            ent_modDesc.insert(END,str(x['models']['description']))
+            ent_modDesc.pack()
+            
+            #btn_getThumb = Button(t,text ="Select Thumbnail", command=lambda: openDialog()).pack()
+            btn_sendfile = Button(t,text ="Choose Thumbnail & Update", command=lambda: sendmodUpd()).pack()
+            bt_Cancel = Button(t, text = "Cancel",command= t.destroy)
+            bt_Cancel.pack()
+
+    else:
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, 'Please select a Model')
+        print('Please select a Model')
+    
     print('Updating Model')         
 
     
