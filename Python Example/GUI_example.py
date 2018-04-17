@@ -3,6 +3,7 @@ from tkinter import *
 import tkinter.ttk as ttk
 from tkinter import filedialog
 import requests
+from requests_toolbelt.multipart.encoder import MultipartEncoder
 import shutil
 import json
 
@@ -579,6 +580,7 @@ def updt_as(event):
             print("snap")
             response = requests.get('https://api.3dusernet.com/3dusernetApi/api/snapshots.json', headers=headers, data=data)
             x = json.loads(response.text)
+            print(response.text)
             y = x['snapshots']
  
  
@@ -781,10 +783,10 @@ def upload_pc():
     listbox2.heading('name', text="Name")
     listbox2.column('name',minwidth=0,width=150, stretch=NO)
     listbox2.pack()
-    lbl_pcattrib = Label(t,text="Attributes").pack()
     lbl_pcDesc = Label(t,text="Enter Description").pack()
     ent_pcDesc = Entry(t)
     ent_pcDesc.pack()
+    lbl_pcattrib = Label(t,text="Attributes").pack()
     ent_pcattrib = Entry(t)
     ent_pcattrib.pack()
     ent_pcattrib.insert(0, "-f xyzirgb -a RGB INTESNITY --intensity-range 0 65535 --color-range 0 255")
@@ -1006,10 +1008,6 @@ def mv_md():
         text_area.delete('1.0', 'end')
         text_area.insert(END, 'No valid IDs - Please select a Project and Model')
         print('No valid IDs - Please select a Project and Model')
- 
-    
-
-    
  
 
 def cp_md():
@@ -1387,7 +1385,90 @@ def delItem():
             text_area.delete('1.0', 'end')
             text_area.insert(END, 'Need to select a Library' + '\n')
     
-           
+def updPC():
+
+    def sendpcUpd():
+        fileLoc =  filedialog.askopenfilename(initialdir = "/",title = "Select Thumbnail",filetypes = (("jpg files","*.jpg"),("png files","*.png"),("bmp files","*.bmp")))
+        print(str(fileLoc))
+        fln = fileLoc.split("/")[len(fileLoc.split("/"))-1]
+        print(fln)
+        
+        #Send Data for Pointcloud Update
+        multipart_data = MultipartEncoder(
+            fields={
+                    # a file upload field
+                    'files':(str(fln), open(str(fileLoc), 'rb'), 'image/jpeg'),
+                    # plain text fields
+                    'id':str(x['point_cloud']['id']), 
+                    'description':str(ent_pcDesc.get()),
+                    'file_name':str(ent_pcName.get()),
+                   }
+            )
+        print(multipart_data)
+
+        response = requests.put('https://api.3dusernet.com/3dusernetApi/api/point_cloud.json', data=multipart_data, headers={
+            #Important to note different type of content in the header here
+            'Content-Type': multipart_data.content_type,
+            'token': show_token.get("1.0",'end-1c'),
+        })
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+        print ('Pointcloud has been Updated')
+        t.destroy()
+
+
+
+    #Check if a Pointcloud is selected and get ID
+    if v2.get()==1:
+        if lb_assets.focus() == "" :
+            text_area.delete('1.0', 'end')
+            text_area.insert(END, 'Please select a Pointcloud')
+            print('Please select a Pointcloud')
+
+        else:
+            #Get Name & Description of Pointcloud
+            headers = {
+                'Content-Type': 'application/json',
+                'token': show_token.get("1.0",'end-1c'),
+            }
+            uid = lb_assets.focus()
+            print (lb_assets.item(uid)['values'][0])
+            data = '{ "id": '+ str(lb_assets.item(uid)['values'][0]) + '}'
+
+            response = requests.get('https://api.3dusernet.com/3dusernetApi/api/point_cloud.json', headers=headers, data=data)
+            x = json.loads(response.text)
+            y = x['point_cloud']
+            print(y)
+
+            
+
+            #Build the interface for the pop-up UI
+            t = Toplevel()
+            t.title("Update Pointcloud")
+            
+            lbl_pcName = Label(t,text="Name").pack()
+            ent_pcName = Entry(t)
+            ent_pcName.insert(END,str(x['point_cloud']['file_name']))
+            ent_pcName.pack()
+            lbl_pcDesc = Label(t,text="Description").pack()
+            ent_pcDesc = Entry(t)
+            ent_pcDesc.insert(END,str(x['point_cloud']['description']))
+            ent_pcDesc.pack()
+            
+            #btn_getThumb = Button(t,text ="Select Thumbnail", command=lambda: openDialog()).pack()
+            btn_sendfile = Button(t,text ="Choose Thumbnail & Update", command=lambda: sendpcUpd()).pack()
+            bt_Cancel = Button(t, text = "Cancel",command= t.destroy)
+            bt_Cancel.pack()
+
+    else:
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, 'Please select a Pointcloud')
+        print('Please select a Pointcloud')
+
+    print('Updating Pointloud')
+
+def updMod():
+    print('Updating Model')         
 
     
 
@@ -1505,6 +1586,8 @@ lb_assets.bind("<ButtonRelease-1>", updt_as)
 
 bt_downl = Button(ctr_mid,text="Download", command=lambda: download(), highlightbackground="#c6bfd2")
 bt_delIt = Button(ctr_mid,text="Delete Object", command=lambda: delItem(), highlightbackground="#c6bfd2")
+bt_updPC = Button(ctr_mid,text="Update Pointcloud", command=lambda: updPC(), highlightbackground="#c6bfd2")
+bt_updMod = Button(ctr_mid,text="Update Model", command=lambda: updMod(), highlightbackground="#c6bfd2")
 
 
 # layout the widgets in the centre_mid frame
@@ -1514,6 +1597,9 @@ rb_ss.grid(row=2)
 lb_assets.grid(row=3)
 bt_downl.grid(row=4)
 bt_delIt.grid(row=5)
+bt_updPC.grid(row=6)
+bt_updMod.grid(row=7)
+
 
 
 # create the widgets for the centre_right frame
@@ -1568,5 +1654,6 @@ text_area= Text(btm_frame, background="#c1c5d6")
 
 # layout the widgets in the bottom frame
 text_area.grid(row=0,column=0,sticky=W+E)
+
 
 root.mainloop()
