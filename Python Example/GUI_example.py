@@ -11,8 +11,29 @@ import os
 import sys
 import math
 import time
+import ast
+
+def encoder(string, key):
+    #create an encrypted version so password isn't stored in its raw form
+    #WARNING this is not a proper encrytion solution, just a precautionary measure for storing a single password
+    encoded_chars = []
+    for i in range(len(string)):
+        key_c = key[i % len(key)]
+        encoded_c = chr(string[i] + key_c % 256)
+        encoded_chars.append(encoded_c)
+    encoded_string = "".join(encoded_chars)
+    return (encoded_string)
 
 
+def decoder(string, key) :
+    encoded_chars = []
+    for i in range(len(string)):
+        key_c = key[i % len(key)]
+        encoded_c = chr(ord(string[i]) - ord(key_c) % 256)
+        encoded_chars.append(encoded_c)
+    encoded_string = "".join(encoded_chars)
+    return (encoded_string)
+    
 
 def callback():
     headers = {
@@ -27,6 +48,17 @@ def callback():
     text_area.insert(END, response.text + '\n')
     x = json.loads(response.text)
     show_token.insert(END, x['token'])
+    print(sve.get())
+    if sve.get() == 1:
+        f= open("config.txt","w+")
+        f.write (entry_U.get() + "\n")
+        enc = encoder((str(entry_P.get())).encode(),(str(entry_U.get())).encode())
+
+        f.write(str(enc.encode('utf-8')) + "\n")
+        f.write(entry_A.get())
+        f.close() 
+        
+    print(os.path.dirname(os.path.abspath(__file__)))
     rb_poj.invoke()
     
 
@@ -65,6 +97,20 @@ def listproj(table):
         print("Unexpected error:", sys.exc_info()[0])
         raise
 
+def new_Container():
+    if v.get() == 1:
+        add_Project()
+    else:
+        add_Library()
+        
+
+
+def upd_Container():
+    if v.get() == 1:
+        upd_Project()
+    else:
+        upd_Library()
+
 
 def add_Project():
 
@@ -78,7 +124,12 @@ def add_Project():
         print (type(ent_pname.get()))
 
         print (txt_pdesc.get())
-        print (listbox4.item(listbox4.focus())['values'][0])
+        try:
+            print (listbox4.item(listbox4.focus())['values'][0])
+        except IndexError:
+            print("Error - need to select Group")
+            text_area.insert(END,"Error - need to select Group")
+            return
         print (type(ent_lat.get()))
         print (type(ent_lon.get()))
 
@@ -88,9 +139,14 @@ def add_Project():
         print (response.text)
         text_area.delete('1.0', 'end')
         text_area.insert(END, response.text + '\n')
+        if v.get() ==1:
+            listproj(listbox)
         t.destroy()
 
     #Build the interface for the pop-up UI
+    text_area.delete('1.0', 'end')
+    text_area.insert(END, 'Opening add project menu' + '\n')
+    
     t = Toplevel()
     t.title("Add new Project")
     lbl_pname = Label(t,text="Project Name").pack()
@@ -157,7 +213,12 @@ def upd_Project():
         }
         print (type(ent_pname.get()))
         print (txt_pdesc.get())
-        print (listbox5.item(listbox5.focus())['values'][0])
+        try:
+            print (listbox5.item(listbox5.focus())['values'][0])
+        except IndexError:
+            print("need to select a Group")
+            text_area.insert(END, "Error - need to select a group"+ '\n')
+            return
         print (type(ent_lat.get()))
         print (type(ent_lon.get()))
 
@@ -167,12 +228,19 @@ def upd_Project():
         print (response.text)
         text_area.delete('1.0', 'end')
         text_area.insert(END, response.text + '\n')
+        if v.get() ==1:
+            listproj(listbox)
         t.destroy()
     
     
     #Get ID of selected Project
     if v.get()==1:
-        ProjID = listbox.item(listbox.focus())['values'][0]
+        try:
+            ProjID = listbox.item(listbox.focus())['values'][0]
+        except IndexError:
+            print("need to select a project")
+            text_area.insert(END, "Error - need to select a project"+ '\n')
+            return
         print(ProjID)
 
         #Get Project Details
@@ -182,13 +250,12 @@ def upd_Project():
         }
 
         data = '{"id":'+ str(ProjID) +'}'
-        print(data)
         response = requests.get('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
-        print (response.text)
+        #print (response.text)
         x = json.loads(response.text)
         text_area.delete('1.0', 'end')
-        text_area.insert(END, response.text + '\n')
-        print(x['projects'])
+        text_area.insert(END, "Opening project update menu" + '\n')
+        #print(x['projects'])
 
         currGroup = 'Current Group is: ' + str(x['projects']['group_id'])
 
@@ -282,10 +349,15 @@ def add_Library():
         print (response.text)
         text_area.delete('1.0', 'end')
         text_area.insert(END, response.text + '\n')
+        if v.get() ==2:
+            listlib(listbox)
         t.destroy()
 
         
     #Build the interface for the pop-up UI
+
+    text_area.delete('1.0', 'end')
+    text_area.insert(END, 'Opening add library menu' + '\n')
     t = Toplevel()
     t.title("Add new Library")
     lbl_lname = Label(t,text="Library Name").pack()
@@ -319,13 +391,21 @@ def upd_Library():
         print (response.text)
         text_area.delete('1.0', 'end')
         text_area.insert(END, response.text + '\n')
+        if v.get() ==2:
+            listlib(listbox)
         t.destroy()
         print('Updated Library')
 
     #Check Library List is selected
     if v.get()==2:
         #Get ID of selected Library
-        LibID = listbox.item(listbox.focus())['values'][0]
+        try:
+             LibID = listbox.item(listbox.focus())['values'][0]
+        except IndexError:
+            print("need to select a library")
+            text_area.insert(END, "Error - need to select a library"+ '\n')
+            return
+        
 
         #Get Library Details
         headers = {
@@ -336,10 +416,9 @@ def upd_Library():
         data = '{"id":'+ str(LibID) +'}'
         print(data)
         response = requests.get('https://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers, data=data)
-        print (response.text)
         x = json.loads(response.text)
         text_area.delete('1.0', 'end')
-        text_area.insert(END, response.text + '\n')
+        text_area.insert(END, 'Opening library update menu' + '\n')
         
 
         #Build the interface for the pop-up UI
@@ -412,7 +491,12 @@ def listpc():
         'token': show_token.get("1.0",'end-1c'),
     }
     uid = listbox.focus()
-    print (listbox.item(uid)['values'][0])
+    try:
+        print (listbox.item(uid)['values'][0])
+    except IndexError:
+        print ("Error - need to select a project/library")
+        text_area.insert(END, "Error - need to select a project/library"+ '\n')
+        return
     data = '{ "id": '+ str(listbox.item(uid)['values'][0]) + '}'
     print (v.get())
     if v.get() ==1 :
@@ -427,12 +511,12 @@ def listpc():
                              
         if type(y) is list:
             if y == []:
-                lb_assets.insert('','end', values = ( "---", "<no data>"))
+                lb_assets.insert('','end', values = ( "---", "---", "<no data>"))
             else:
                 print((y[0]['file_name']))
                 i=0
                 while i < len(y) :        
-                    lb_assets.insert('','end', values = ( y[i]['id'], y[i]['file_name']))
+                    lb_assets.insert('','end', values = ( y[i]['id'], "---", y[i]['file_name']))
                     i +=1
         else:
             print(type(y['file_name']))
@@ -455,9 +539,16 @@ def listmod():
         'token': show_token.get("1.0",'end-1c'),
     }
     uid = listbox.focus()
-    print (listbox.item(uid)['values'][0])
+    try:
+        print (listbox.item(uid)['values'][0])
+    except IndexError:
+        print ("Error - need to select a project/library")
+        text_area.insert(END, "Error - need to select a project/library"+ '\n')
+        return
+
+
+        
     data = '{ "id": '+ str(listbox.item(uid)['values'][0]) + '}'
-    print (v.get())
     if v.get() ==1 :
         response = requests.get('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
     else:
@@ -467,30 +558,31 @@ def listmod():
 
     for i in lb_assets.get_children():
         lb_assets.delete(i)
-    
+
     if v.get() ==1 :                             
         if type(y) is list:
             if y == []:
-                lb_assets.insert('','end', values = ( "---", "<no data>"))
+                lb_assets.insert('','end', values = ( "---", "---", "<no data>"))
             else:
                 i=0
-                while i < len(y) :        
-                    lb_assets.insert('','end', values = ( y[i]['models']['id'], y[i]['models']['file_name']))
+                while i < len(y) :
+                    
+                    lb_assets.insert('','end', values = ( y[i]['models']['id'], y[i]['model_project_location']['id'], y[i]['models']['file_name']))
                     i +=1
         else:
             
-            lb_assets.insert('','end', values = ( y['models']['id'], y['models']['file_name']))
+            lb_assets.insert('','end', values = ( y['models']['id'],y['model_project_location']['id'], y['models']['file_name']))
     else:
         if type(y) is list:
             if y == []:
-                lb_assets.insert('','end', values = ( "---", "<no data>"))
+                lb_assets.insert('','end', values = ( "---", "---", "<no data>"))
             else:
                 i=0
                 while i < len(y) :        
-                    lb_assets.insert('','end', values = ( y[i]['id'], y[i]['file_name']))
+                    lb_assets.insert('','end', values = ( y[i]['id'], "---",  y[i]['file_name']))
                     i +=1
         else:
-            lb_assets.insert('','end', values = ( y['id'], y['file_name']))
+            lb_assets.insert('','end', values = ( y['id'], "---", y['file_name']))
 
 
 def listsnaps():
@@ -500,7 +592,12 @@ def listsnaps():
         'token': show_token.get("1.0",'end-1c'),
     }
     uid = listbox.focus()
-    print (listbox.item(uid)['values'][0])
+    try:
+        print (listbox.item(uid)['values'][0])
+    except IndexError:
+        print ("Error - need to select a project/library")
+        text_area.insert(END, "Error - need to select a project/library"+ '\n')
+        return
     data = '{ "id": '+ str(listbox.item(uid)['values'][0]) + '}'
     print (v.get())
     if v.get() ==1 :
@@ -516,15 +613,15 @@ def listsnaps():
                              
         if type(y) is list:
             if y == []:
-                lb_assets.insert('','end', values = ( "---", "<no data>"))
+                lb_assets.insert('','end', values = ( "---", "---", "<no data>"))
             else:
                 i=0
                 while i < len(y) :        
-                    lb_assets.insert('','end', values = ( y[i]['id'], y[i]['name']))
+                    lb_assets.insert('','end', values = ( y[i]['id'], "---", y[i]['name']))
                     i +=1
         else:
             print(type(y['name']))
-            lb_assets.insert('','end', values = ( y['id'], y['name']))
+            lb_assets.insert('','end', values = ( y['id'],"---",  y['name']))
 
     except OSError as err:
         print("OS error: {0}".format(err))
@@ -559,19 +656,20 @@ def updt_as(event):
     print (lb_assets.item(uid)['values'][0])
     data = '{ "id": '+ str(lb_assets.item(uid)['values'][0]) + '}'
     print (v2.get())
+    print (data)
     if str(lb_assets.item(uid)['values'][0]) =="---" :
         print("no data")
     else:
         if v2.get() == 1 :
             print ("pc")
             response = requests.get('https://api.3dusernet.com/3dusernetApi/api/point_cloud.json', headers=headers, data=data)
+
             x = json.loads(response.text)
             y = x['point_cloud']
 
         elif v2.get()==2 :
             print("mod")
             response = requests.get('https://api.3dusernet.com/3dusernetApi/api/models.json', headers=headers, data=data)
-            print(response.text)
             x = json.loads(response.text)
             y = x['models']
             
@@ -580,7 +678,6 @@ def updt_as(event):
             print("snap")
             response = requests.get('https://api.3dusernet.com/3dusernetApi/api/snapshots.json', headers=headers, data=data)
             x = json.loads(response.text)
-            print(response.text)
             y = x['snapshots']
  
  
@@ -601,12 +698,38 @@ def updt_as(event):
         cr8td.set ( y['created'])
                             
         # Model transformation Data
-        if v2.get() == 2:
-            mtrans = y['model_location']
-            mrot = y['model_rotation']
-            mscale = y['model_scale']
-            mFT = 'T: ' + mtrans + '\nR: ' + mrot + '\nS: ' + mscale
-            mod.set (mFT)
+
+        
+        if v.get() ==1 and v2.get() == 2:
+            data = '{"id":' + str(listbox.item(listbox.focus())['values'][0]) + ',"model_id":' + str(lb_assets.item(lb_assets.focus())['values'][0]) + '}'
+            print (data)
+            response = requests.get('https://api.3dusernet.com/3dusernetApi/api/models_orientation.json', headers=headers, data=data)
+            x = json.loads(response.text)
+            try:
+                response = x['single response']
+                mtrans = response['position']
+                mrot = response['rotation']
+                mscale = response['scale']
+                mFT = 'T: ' + mtrans + '\nR: ' + mrot + '\nS: ' + mscale
+                mod.set (mFT)
+            except:
+                print("multiple models")
+                
+            try:                
+                response = x['multiple response']
+
+                for i in response:
+                    print (str(lb_assets.item(lb_assets.focus())['values'][1]) + ", " + str(i['id']))
+                    if str(lb_assets.item(lb_assets.focus())['values'][1]) == str(i['id']):
+                        mtrans = i['position']
+                        mrot = i['rotation']
+                        mscale = i['scale']
+                        mFT = 'T: ' + mtrans + '\nR: ' + mrot + '\nS: ' + mscale
+                        mod.set (mFT)
+            except:
+                print("single model")
+
+                            
         else:
             mod.set ('Not Available')
             
@@ -675,7 +798,12 @@ def download():
 def upload_pc():
     def sendpc():
         uid = listbox2.focus()
-        print (listbox2.item(uid)['values'][0])
+        try:
+            print (listbox2.item(uid)['values'][0])
+        except IndexError:
+            text_area.delete('1.0', 'end')
+            text_area.insert(END, 'Error - Please select Library or Project' + '\n')
+            return
 
         MAX_UPLOAD_BYTE_LENGHT = 1024 * 1024 * 5 # 5M
 
@@ -704,15 +832,13 @@ def upload_pc():
                 headers['Arguments'] = ent_pcattrib.get()
                 headers['Filetype'] = str(file_type)
                 headers['Description'] = ent_pcDesc.get()
-                #headers['location'] = '10, 10, 10'
-                #headers['rotation'] = '0.5, 0, 0.5'
-                #headers['scale'] = '1, 1, 1'
                 print (str(file_arg))
                 print (str(file_type))
-                
+                text_area.delete('1.0', 'end')
                 with open(file_path, 'rb') as file:
                     chunk_count = math.ceil(float(file_size) / self.max_byte_length)
                     print("Total chunk count:", chunk_count)
+                    text_area.insert(END, "Total chunk count:" + str(chunk_count) + '\n')
 
                     retry_timeout = 1
                     sent_chunk_count = 0
@@ -729,6 +855,7 @@ def upload_pc():
                             json_data = json.loads(response.text)
                             if json_data["result"]=="success":
                                 print('{}. chunk sent to server'.format(sent_chunk_count + 1))
+                                text_area.insert(END, '{}. chunk sent to server'.format(sent_chunk_count + 1) + '\n')
                                 sent_chunk_count += 1
                             else:
                                 print('Error Message:',json_data["message"])
@@ -763,7 +890,15 @@ def upload_pc():
             print("Usage: python chunk_uploader.py [file_path]")
             
         print("////// Pointcloud Uploaded")
+        text_area.insert(END, "Success - Pointcloud Uploaded"+ '\n')
         t.destroy()
+        if v2.get() ==1:
+            listpc()
+        elif v2.get()==2:
+            listmod()
+        else:
+            listsnaps()
+
     
     filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("las files","*.las"),("laz files","*.laz"),("e57 files","*.e57"),("xyz files","*.xyz"),("ply files","*.ply")))
     print (filename)
@@ -798,7 +933,12 @@ def upload_pc():
 def upload_md():
     def sendmod():
         uid = listbox2.focus()
-        print (listbox2.item(uid)['values'][0])
+        try:
+            print (listbox2.item(uid)['values'][0])
+        except IndexError:
+            text_area.delete('1.0', 'end')
+            text_area.insert(END, 'Error - Please select Library or Project' + '\n')
+            return
 
         MAX_UPLOAD_BYTE_LENGHT = 1024 * 1024 * 5 # 5M
 
@@ -833,10 +973,12 @@ def upload_md():
                 headers['scale'] = ent_modScl.get()
                 print (str(file_arg))
                 print (str(file_type))
-                
+                text_area.delete('1.0', 'end')
+
                 with open(file_path, 'rb') as file:
                     chunk_count = math.ceil(float(file_size) / self.max_byte_length)
                     print("Total chunk count:", chunk_count)
+                    text_area.insert(END, "Total chunk count:" + str(chunk_count) + '\n')
 
                     retry_timeout = 1
                     sent_chunk_count = 0
@@ -853,6 +995,7 @@ def upload_md():
                             json_data = json.loads(response.text)
                             if json_data["result"]=="success":
                                 print('{}. chunk sent to server'.format(sent_chunk_count + 1))
+                                text_area.insert(END, '{}. chunk sent to server'.format(sent_chunk_count + 1) + '\n')
                                 sent_chunk_count += 1
                             else:
                                 print('Error Message:',json_data["message"])
@@ -871,7 +1014,7 @@ def upload_md():
                             return True
 
                     return False
-
+ 
         if __name__ == '__main__':
             client = Client(API_URL, 
 
@@ -887,7 +1030,14 @@ def upload_md():
             print("Usage: python chunk_uploader.py [file_path]")
             
         print("////// Model Uploaded")
+        text_area.insert(END, "Success - Model Uploaded"+ '\n')
         t.destroy()
+        if v2.get() ==1:
+            listpc()
+        elif v2.get()==2:
+            listmod()
+        else:
+            listsnaps()
 
     #Build the interface for the pop-up UI
     filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("stl files","*.stl"),("fbx files","*.fbx"),("ifc files","*.ifc"),("obj files","*.obj"),("ply files","*.ply"), ("zip files","*.zip")))
@@ -922,7 +1072,7 @@ def upload_md():
     lbl_modRotattrib = Label(t,text="Rotation (Radians)").pack()
     ent_modRot = Entry(t)
     ent_modRot.pack()
-    ent_modRot.insert(0, "0.5, 0.0, 0.5")
+    ent_modRot.insert(0, "0, 0, 0")
     lbl_modSclattrib = Label(t,text="Scale").pack()
     ent_modScl = Entry(t)
     ent_modScl.pack()
@@ -1085,11 +1235,25 @@ def cp_md():
  
 
 def delProj():
+        
     #Case 1 - Project Selected
     if v.get() == 1:
         #Find the selected project ID
-        ProjID = listbox.item(listbox.focus())['values'][0]
-
+        try:
+            ProjID = listbox.item(listbox.focus())['values'][0]
+        except IndexError:
+            print("need to select a project")
+            text_area.insert(END, "Error - need to select a project"+ '\n')
+            return
+        
+        #check with User to verify delete
+        response = messagebox.askokcancel("Python","Are you sure you wish to delete this project?")
+        print (response)
+        if response == False:
+            print("Operation cancelled")
+            text_area.insert(END, "Operation cancelled"+ '\n')
+            return
+            
         #Send the API command with the relevant ID to delete the Project
         headers = {
         'Content-Type': 'application/json',
@@ -1105,8 +1269,21 @@ def delProj():
     #Case 2 - Library Selected
     elif v.get() == 2:
         #Find the selected library ID
-        LibID = listbox.item(listbox.focus())['values'][0]
-
+        try:
+            LibID = listbox.item(listbox.focus())['values'][0]
+        except IndexError:
+            print("need to select a library")
+            text_area.insert(END, "Error - need to select a library"+ '\n')
+            return
+        
+        #check with User to verify delete
+        response = messagebox.askokcancel("Python","Are you sure you wish to delete this Library?")
+        print (response)
+        if response == False:
+            print("Operation cancelled")
+            text_area.insert(END, "Operation cancelled"+ '\n')
+            return
+        
         #Send the API command with the relevant ID to delete the Project
         headers = {
         'Content-Type': 'application/json',
@@ -1119,6 +1296,10 @@ def delProj():
         text_area.insert(END, response.text + '\n')
         print ('Library has been deleted')
 
+    if v.get() ==1:
+        listproj(listbox)
+    else:
+        listlib(listbox)
 
 def delItem():
     
@@ -1139,30 +1320,39 @@ def delItem():
 
                 print (ProjID)
                 print (pcID)
-
-                #Perform Deletion of Selected Object
-                headers = {
-                'Content-Type': 'application/json',
-                'token': show_token.get("1.0",'end-1c')
-                }
-
-                data = '{"point_cloud_id":' + str(pcID) + ',"project_id":' + str(ProjID) + '}'
-                print(data)
-                response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_project_point_cloud.json', headers=headers, data=data)
-
-                text_area.delete('1.0', 'end')
-                text_area.insert(END, response.text + '\n')
-                print ('Pointcloud has been deleted')
             
             except:
-                print ('Need to select a Pointcloud')
+                print ('Need to select a valid Pointcloud')
                 text_area.delete('1.0', 'end')
-                text_area.insert(END, 'Need to select a Pointcloud' + '\n')
+                text_area.insert(END, 'Error - Need to select a valid Pointcloud' + '\n')
             
         except IndexError:
             print ('Need to select a Project')
             text_area.delete('1.0', 'end')
             text_area.insert(END, 'Need to select a Project' + '\n')
+
+       #check with User to verify delete
+        response = messagebox.askokcancel("Python","Are you sure you wish to delete this Library?")
+        print (response)
+        if response == False:
+            print("Operation cancelled")
+            text_area.insert(END, "Operation cancelled"+ '\n')
+            return
+
+       
+        #Perform Deletion of Selected Object
+        headers = {
+        'Content-Type': 'application/json',
+        'token': show_token.get("1.0",'end-1c')
+        }
+
+        data = '{"point_cloud_id":' + str(pcID) + ',"project_id":' + str(ProjID) + '}'
+        print(data)
+        response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_project_point_cloud.json', headers=headers, data=data)
+
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+        print ('Pointcloud has been deleted')
 
     #Models
     elif v.get() == 1 and v2.get() == 2:
@@ -1176,39 +1366,11 @@ def delItem():
             try:
                 index2 = str(lb_assets.selection()[0])
                 modID = lb_assets.item(lb_assets.focus())['values'][0]
+                instID = lb_assets.item(lb_assets.focus())['values'][1]
 
                 print (ProjID)
                 print (modID)
-
-                #Get the ModelProjectLocation id for the selected Project and Model
-                headers = {
-                'Content-Type': 'application/json',
-                'token': show_token.get("1.0",'end-1c')
-                }
-
-                data = '{"id":' + str(ProjID) + ',"model_id":' + str(modID) + '}'
-                
-                response = requests.get('https://api.3dusernet.com/3dusernetApi/api/models_orientation.json', headers=headers, data=data)
-                text_area.delete('1.0', 'end')
-                text_area.insert(END, response.text + '\n')
-                modprojloc = json.loads(response.text)
-
-                modprojlocID = modprojloc['single response']['id']
-                print(modprojlocID)
-
-                #Perform Deletion of Selected Object
-                headers = {
-                'Content-Type': 'application/json',
-                'token': show_token.get("1.0",'end-1c')
-                }
-
-                data = '{"model_id":' + str(modID) + ',"project_id":' + str(ProjID) + ',"model_project_location_id":' + str(modprojlocID) +'}'
-                print(data)
-                response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_project_model.json', headers=headers, data=data)
-
-                text_area.delete('1.0', 'end')
-                text_area.insert(END, response.text + '\n')
-                print ('Model has been deleted')
+                print (instID)
             
             except:
                 print ('Need to select a Model')
@@ -1219,6 +1381,29 @@ def delItem():
             print ('Need to select a Project')
             text_area.delete('1.0', 'end')
             text_area.insert(END, 'Need to select a Project' + '\n')
+
+        #check with User to verify delete
+        response = messagebox.askokcancel("Python","Are you sure you wish to delete this Library?")
+        print (response)
+        if response == False:
+            print("Operation cancelled")
+            text_area.insert(END, "Operation cancelled"+ '\n')
+            return
+
+
+        #Perform Deletion of Selected Object
+        headers = {
+        'Content-Type': 'application/json',
+        'token': show_token.get("1.0",'end-1c')
+        }
+
+        data = '{"model_id":' + str(modID) + ',"project_id":' + str(ProjID) + ',"model_project_location_id":' + str(instID) +'}'
+        print(data)
+        response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_project_model.json', headers=headers, data=data)
+
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+        print ('Model has been deleted')
 
         
     #Snapshots
@@ -1236,20 +1421,6 @@ def delItem():
 
                 print (ProjID)
                 print (snapID)
-
-                #Get the ModelProjectLocation id for the selected Project and Model
-                headers = {
-                'Content-Type': 'application/json',
-                'token': show_token.get("1.0",'end-1c')
-                }
-
-                data = '{"snapshot_id":' + str(snapID) + ',"project_id":' + str(ProjID) + '}'
-                
-                response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_project_snapshot.json', headers=headers, data=data)
-                text_area.delete('1.0', 'end')
-                text_area.insert(END, response.text + '\n')
-
-                print ('Snapshot has been deleted')
             
             except:
                 print ('Need to select a Snapshot')
@@ -1260,6 +1431,28 @@ def delItem():
             print ('Need to select a Project')
             text_area.delete('1.0', 'end')
             text_area.insert(END, 'Need to select a Project' + '\n')
+
+        #check with User to verify delete
+        response = messagebox.askokcancel("Python","Are you sure you wish to delete this Library?")
+        print (response)
+        if response == False:
+            print("Operation cancelled")
+            text_area.insert(END, "Operation cancelled"+ '\n')
+            return
+
+       #Perform Deletion of Snapshot
+        headers = {
+        'Content-Type': 'application/json',
+        'token': show_token.get("1.0",'end-1c')
+        }
+
+        data = '{"snapshot_id":' + str(snapID) + ',"project_id":' + str(ProjID) + '}'
+        
+        response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_project_snapshot.json', headers=headers, data=data)
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+
+        print ('Snapshot has been deleted')
 
         
     
@@ -1280,19 +1473,6 @@ def delItem():
                 print (LibID)
                 print (pcID)
 
-                #Perform Deletion of Selected Object
-                headers = {
-                'Content-Type': 'application/json',
-                'token': show_token.get("1.0",'end-1c')
-                }
-
-                data = '{"point_clouds_ids":[' + str(pcID) + '],"library":' + str(LibID) + '}'
-                print(data)
-                response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_library_point_cloud.json', headers=headers, data=data)
-
-                text_area.delete('1.0', 'end')
-                text_area.insert(END, response.text + '\n')
-                print ('Pointcloud has been deleted')
             
             except:
                 print ('Need to select a Pointcloud')
@@ -1304,6 +1484,30 @@ def delItem():
             text_area.delete('1.0', 'end')
             text_area.insert(END, 'Need to select a Library' + '\n')
 
+       #check with User to verify delete
+        response = messagebox.askokcancel("Python","Are you sure you wish to delete this Library?")
+        print (response)
+        if response == False:
+            print("Operation cancelled")
+            text_area.insert(END, "Operation cancelled"+ '\n')
+            return
+
+        #Perform Deletion of Selected Object
+        headers = {
+        'Content-Type': 'application/json',
+        'token': show_token.get("1.0",'end-1c')
+        }
+
+        data = '{"point_clouds_ids":[' + str(pcID) + '],"library":' + str(LibID) + '}'
+        print(data)
+        response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_library_point_cloud.json', headers=headers, data=data)
+
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+        print ('Pointcloud has been deleted')
+
+
+        
           
     #Models
     elif v.get() == 2 and v2.get() == 2:
@@ -1321,19 +1525,6 @@ def delItem():
                 print (LibID)
                 print (modID)
 
-                #Perform Deletion of Selected Object
-                headers = {
-                'Content-Type': 'application/json',
-                'token': show_token.get("1.0",'end-1c')
-                }
-
-                data = '{"models_ids":[' + str(modID) + '],"library":' + str(LibID) + '}'
-                print(data)
-                response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_library_model.json', headers=headers, data=data)
-
-                text_area.delete('1.0', 'end')
-                text_area.insert(END, response.text + '\n')
-                print ('Model has been deleted')
             
             except:
                 print ('Need to select a Model')
@@ -1344,6 +1535,28 @@ def delItem():
             print ('Need to select a Library')
             text_area.delete('1.0', 'end')
             text_area.insert(END, 'Need to select a Library' + '\n')
+
+        #check with User to verify delete
+        response = messagebox.askokcancel("Python","Are you sure you wish to delete this Library?")
+        print (response)
+        if response == False:
+            print("Operation cancelled")
+            text_area.insert(END, "Operation cancelled"+ '\n')
+            return
+        
+        #Perform Deletion of Selected Object
+        headers = {
+        'Content-Type': 'application/json',
+        'token': show_token.get("1.0",'end-1c')
+        }
+
+        data = '{"models_ids":[' + str(modID) + '],"library":' + str(LibID) + '}'
+        print(data)
+        response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_library_model.json', headers=headers, data=data)
+
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+        print ('Model has been deleted')
         
         
     #Snapshots
@@ -1362,19 +1575,7 @@ def delItem():
                 print (LibID)
                 print (snapID)
 
-                #Perform Deletion of Selected Object
-                headers = {
-                'Content-Type': 'application/json',
-                'token': show_token.get("1.0",'end-1c')
-                }
-
-                data = '{"snapshots_ids":[' + str(snapID) + '],"library":' + str(LibID) + '}'
-                print(data)
-                response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_library_snapshot.json', headers=headers, data=data)
-
-                text_area.delete('1.0', 'end')
-                text_area.insert(END, response.text + '\n')
-                print ('Snapshot has been deleted')
+ 
             
             except:
                 print ('Need to select a Snapshot')
@@ -1385,8 +1586,46 @@ def delItem():
             print ('Need to select a Library')
             text_area.delete('1.0', 'end')
             text_area.insert(END, 'Need to select a Library' + '\n')
+
+        #check with User to verify delete
+        response = messagebox.askokcancel("Python","Are you sure you wish to delete this Library?")
+        print (response)
+        if response == False:
+            print("Operation cancelled")
+            text_area.insert(END, "Operation cancelled"+ '\n')
+            return
+
+        
+       #Perform Deletion of Selected Object
+        headers = {
+        'Content-Type': 'application/json',
+        'token': show_token.get("1.0",'end-1c')
+        }
+
+        data = '{"snapshots_ids":[' + str(snapID) + '],"library":' + str(LibID) + '}'
+        print(data)
+        response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_library_snapshot.json', headers=headers, data=data)
+
+        text_area.delete('1.0', 'end')
+        text_area.insert(END, response.text + '\n')
+        print ('Snapshot has been deleted')
+
+    if v2.get() ==1:
+        listpc()
+    elif v2.get()==2:
+        listmod()
+    else:
+        listsnaps()
+        
+def upd_asset():
+    if v2.get() == 1:
+        upd_Pointcloud()
+    else:
+        upd_Model()
+
+
     
-def updPC():
+def upd_Pointcloud():
 
     def sendpcUpd():
         fileLoc =  filedialog.askopenfilename(initialdir = "/",title = "Select Thumbnail",filetypes = (("jpg files","*.jpg"),("png files","*.png"),("bmp files","*.bmp")))
@@ -1439,7 +1678,6 @@ def updPC():
             response = requests.get('https://api.3dusernet.com/3dusernetApi/api/point_cloud.json', headers=headers, data=data)
             x = json.loads(response.text)
             y = x['point_cloud']
-            print(y)
 
             
 
@@ -1467,7 +1705,7 @@ def updPC():
         print('Please select a Pointcloud')
 
 
-def updMod():
+def upd_Model():
 
     def sendmodUpd():
         fileLoc =  filedialog.askopenfilename(initialdir = "/",title = "Select Thumbnail",filetypes = (("jpg files","*.jpg"),("png files","*.png"),("bmp files","*.bmp")))
@@ -1520,7 +1758,6 @@ def updMod():
             response = requests.get('https://api.3dusernet.com/3dusernetApi/api/models.json', headers=headers, data=data)
             x = json.loads(response.text)
             y = x['models']
-            print(y)
 
             
 
@@ -1552,7 +1789,7 @@ def updMod():
     
 
 
-###############################
+############################### 
     
 root = Tk()
 root.title('Model Definition')
@@ -1578,12 +1815,22 @@ model_label = Label(top_frame, text='3DUserNet API Example',font=("Arial", 16), 
 user_label = Label(top_frame, text='UserName:', bg="#660066",fg="white")
 pass_label = Label(top_frame, text='Password:', bg="#660066",fg="white")
 app_label = Label(top_frame, text='AppID:', bg="#660066",fg="white")
-entry_U = Entry(top_frame, background="white", width = 15)
-entry_P = Entry(top_frame, show="*", background="white", width = 15)
-entry_A = Entry(top_frame, background="white", width = 15)
-get_token = Button(top_frame, bg="#660066", highlightbackground="#660066", text="OK", command=callback)
+
+user = StringVar()
+pword = StringVar()
+api = StringVar()
+
+entry_U = Entry(top_frame, background="white", width = 15, textvariable=user)
+entry_P = Entry(top_frame, show="*", background="white", width = 15, textvariable=pword)
+entry_A = Entry(top_frame, background="white", width = 15, textvariable=api)
+get_token = Button(top_frame, bg="light grey", highlightbackground="#660066", text="OK", command=callback)
 token_label = Label(top_frame, text='= Token', bg="#660066",fg="white")
-show_token = Text(top_frame, height = 1,background="lightgrey", width = 70)
+show_token = Text(top_frame, height = 1,background="light grey", width = 70)
+
+sve = IntVar()
+
+cb_saveUser = Checkbutton(top_frame, bg="#660066", foreground="light grey", text="", variable=sve)
+sv_label = Label(top_frame, text='Save details:', bg="#660066",fg="white",font=("Arial", 10))
 
 # layout the widgets in the top frame
 model_label.grid(row=0, columnspan=8)
@@ -1596,6 +1843,8 @@ entry_A.grid(row=1, column=5)
 get_token.grid(row=2,column=0, sticky=W)
 token_label.grid(row=2,column=5, sticky=E)
 show_token.grid(row=2,column=1, columnspan=5, sticky=W)
+cb_saveUser.grid(row=0,column=5, sticky=E)
+sv_label.grid(row=0,column=5)
 
 # create the center widgets
 center.grid_rowconfigure(0, weight=1)
@@ -1628,11 +1877,9 @@ listbox.bind("<ButtonRelease-1>", updt_gr)
 
 
 #replaced with ttk tree   - listbox = Listbox(ctr_left)
-bt_addpr = Button(ctr_left,text="New Project", highlightbackground="#c6bfd2", command=lambda: add_Project())
-bt_updpr = Button(ctr_left,text="Update Project", highlightbackground="#c6bfd2", command=lambda: upd_Project())
-bt_addLib = Button(ctr_left,text="New Library", highlightbackground="#c6bfd2", command=lambda: add_Library())
-bt_updLib = Button(ctr_left,text="Update Library", highlightbackground="#c6bfd2", command=lambda: upd_Library())
-bt_delpr = Button(ctr_left,text="Delete Project / Library", highlightbackground="#c6bfd2", command=lambda: delProj())
+bt_addpr = Button(ctr_left,text="New", highlightbackground="#c6bfd2", command=lambda: new_Container())
+bt_updpr = Button(ctr_left,text="Update", highlightbackground="#c6bfd2", command=lambda: upd_Container())
+bt_delpr = Button(ctr_left,text="Delete", highlightbackground="#c6bfd2", command=lambda: delProj())
 
 # layout the widgets in the centre_left frame
 
@@ -1642,8 +1889,6 @@ rb_lib.grid(row=2)
 listbox.grid(row=3)
 bt_addpr.grid(row=4)
 bt_updpr.grid(row=5)
-bt_addLib.grid(row=6)
-bt_updLib.grid(row=7)
 bt_delpr.grid(row=8)
 
 # create the widgets for the centre_mid frame
@@ -1654,19 +1899,22 @@ v2 = IntVar()
 rb_pc = Radiobutton(ctr_mid, text="Pointclouds", command=lambda: listpc(), variable=v2, value=1, bg = "#c6bfd2")
 rb_md = Radiobutton(ctr_mid, text="Models", command=lambda: listmod(), variable=v2, value=2, bg = "#c6bfd2")
 rb_ss = Radiobutton(ctr_mid, text="Snapshots", command=lambda: listsnaps(), variable=v2, value=3, bg = "#c6bfd2")
-lb_assets = ttk.Treeview(ctr_mid, columns=lb_header, show="headings")
+lb_header2 = ['id', 'instid', 'name']
+lb_assets = ttk.Treeview(ctr_mid, columns=lb_header2, show="headings")
 
 #replaced with ttk tree  - lb_assets = Listbox(ctr_mid)
 lb_assets.heading('id', text="id")
 lb_assets.column('id',minwidth=0,width=40, stretch=NO)
+lb_assets.heading('instid', text="inst_id")
+lb_assets.column('instid',minwidth=0,width=40, stretch=NO)
 lb_assets.heading('name', text="Name")
 lb_assets.column('name',minwidth=0,width=150, stretch=NO)
 lb_assets.bind("<ButtonRelease-1>", updt_as)
 
-bt_downl = Button(ctr_mid,text="Download", command=lambda: download(), highlightbackground="#c6bfd2")
+bt_downl = Button(ctr_mid,text="Download Object", command=lambda: download(), highlightbackground="#c6bfd2")
+bt_updAss = Button(ctr_mid,text="Update Object", command=lambda: upd_asset(), highlightbackground="#c6bfd2")
 bt_delIt = Button(ctr_mid,text="Delete Object", command=lambda: delItem(), highlightbackground="#c6bfd2")
-bt_updPC = Button(ctr_mid,text="Update Pointcloud", command=lambda: updPC(), highlightbackground="#c6bfd2")
-bt_updMod = Button(ctr_mid,text="Update Model", command=lambda: updMod(), highlightbackground="#c6bfd2")
+
 
 
 # layout the widgets in the centre_mid frame
@@ -1675,9 +1923,8 @@ rb_md.grid(row=1)
 rb_ss.grid(row=2)
 lb_assets.grid(row=3)
 bt_downl.grid(row=4)
-bt_delIt.grid(row=5)
-bt_updPC.grid(row=6)
-bt_updMod.grid(row=7)
+bt_updAss.grid(row=5)
+bt_delIt.grid(row=6)
 
 
 
@@ -1729,10 +1976,31 @@ bt_cpmd.grid(row=10)
 btm_frame.grid_rowconfigure(0, weight=1)
 btm_frame.grid_columnconfigure(0, weight=1)
 
-text_area= Text(btm_frame, background="#c1c5d6")
+text_area= Text(btm_frame, background="#c1c5d6"
+                )
 
 # layout the widgets in the bottom frame
 text_area.grid(row=0,column=0,sticky=W+E)
 
+
+# load info into fields
+try:
+    f=open("config.txt", "r")
+    if f.mode == 'r':
+        contents =f.read()
+        print(contents.splitlines()[0])
+        user.set(contents.splitlines()[0])
+        api.set(contents.splitlines()[2])
+
+        enc = ast.literal_eval(contents.splitlines()[1])
+        senc = enc.decode('utf-8')
+        print (senc)
+        print (type(senc))
+        dec = decoder(senc,str(contents.splitlines()[0]))
+        pword.set(dec)
+except:
+    print("Error - Unable to load previous details")
+    text_area.delete('1.0', 'end')
+    text_area.insert(END, 'Error - Unable to load previous details' + '\n')
 
 root.mainloop()
