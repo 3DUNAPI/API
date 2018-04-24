@@ -743,7 +743,7 @@ def download():
         else:
             downl.get
             r = requests.get(downl.get(),stream=True)
-            with open(folder + '/' + name.get(), 'wb') as f:
+            with open(folder + '/' + str(name.get()), 'wb') as f:
                 shutil.copyfileobj(r.raw, f)
             return folder
             if v2.get() == 1 :
@@ -752,7 +752,7 @@ def download():
                 x = json.loads(response.text)
                 y = json.loads(x)
                 r = requests.get(y["s3_file_download"],stream=True)
-                with open(folder + '/' + y["file_name"], 'wb') as f:
+                with open(folder + '/' + str(y["file_name"]), 'wb') as f:
                     shutil.copyfileobj(r.raw, f)
                 return folder
             elif v2.get()==2 :
@@ -761,11 +761,11 @@ def download():
                 x = json.loads(response.text)
                 y = json.loads(x)
                 r = requests.get(y["s3_file_download"],stream=True)
-                with open(folder + '/' + y["file_name"], 'wb') as f:
+                with open(folder + '/' + str(y["file_name"]), 'wb') as f:
                     shutil.copyfileobj(r.raw, f)
                 return folder
             else:
-                # Snpashots
+                # Snapshots
                 print("snapshots - not operational yet")
 
 def upload_pc():
@@ -1585,7 +1585,7 @@ def upd_Pointcloud():
             'token': show_token.get("1.0",'end-1c')
             }
             data = '{"id":' + str(x['point_cloud']['id']) + ', "description":"' + str(ent_pcDesc.get()) + '", "file_name":"' + str(ent_pcName.get()) + '"}'
-            response = requests.put('https://api.3dusernet.com/3dusernetApi/api/point_cloud.json.json', headers=headers, data=data)
+            response = requests.put('https://api.3dusernet.com/3dusernetApi/api/point_cloud.json', headers=headers, data=data)
 
             #send notification to user
             text_area.delete('1.0', 'end')
@@ -1719,7 +1719,7 @@ def upd_Model():
             'token': show_token.get("1.0",'end-1c')
             }
             data = '{"id":' + str(x['models']['id']) + ', "description":"' + str(ent_modDesc.get()) + '", "file_name":"' + str(ent_modName.get()) + '"}'
-            response = requests.put('https://api.3dusernet.com/3dusernetApi/api/models.json.json', headers=headers, data=data)
+            response = requests.put('https://api.3dusernet.com/3dusernetApi/api/models.json', headers=headers, data=data)
 
             #send notification to user
             text_area.delete('1.0', 'end')
