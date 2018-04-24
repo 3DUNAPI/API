@@ -5,18 +5,21 @@ from tkinter import filedialog
 from tkinter import messagebox
 import requests
 from requests_toolbelt.multipart.encoder import MultipartEncoder
+from PIL import Image, ImageTk
 import shutil
 import json
-
 import os
 import sys
 import math
 import time
 import ast
+import urllib.request
+import io
+
 
 def encoder(string, key):
     #create an encrypted version so password isn't stored in its raw form
-    #WARNING this is not a proper encrytion solution, just a precautionary measure for storing a single password
+    #WARNING this is not a proper encrytion solution, just a precautionary measure for storing single passwords
     encoded_chars = []
     for i in range(len(string)):
         key_c = key[i % len(key)]
@@ -27,6 +30,7 @@ def encoder(string, key):
 
 
 def decoder(string, key) :
+    #decoder for the above encoder using character shift technique
     encoded_chars = []
     for i in range(len(string)):
         key_c = key[i % len(key)]
@@ -37,43 +41,47 @@ def decoder(string, key) :
     
 
 def callback():
+    #sign in to API using defined credentials, return will be active token
     headers = {
         'Content-Type': 'application/json',
         'appid':entry_A.get(),
     }
 
     data = '{"username":"' + entry_U.get() + '","password":"' + entry_P.get() + '"}'
- 
     response = requests.get('https://api.3dusernet.com/3dusernetApi/api/sign_in.json', headers=headers, data=data)
+
+    # notify user and add tocken
     text_area.delete('1.0', 'end')
     text_area.insert(END, response.text + '\n')
     x = json.loads(response.text)
     show_token.insert(END, x['token'])
-    print(sve.get())
+
+    # if 'save detials' is active, create a config file with the user details contained. Note file is saved to the default folder.
     if sve.get() == 1:
         f= open("config.txt","w+")
         f.write (entry_U.get() + "\n")
         enc = encoder((str(entry_P.get())).encode(),(str(entry_U.get())).encode())
-
+        # binary encode password before saving
         f.write(str(enc.encode('utf-8')) + "\n")
         f.write(entry_A.get())
         f.close() 
         
-    print(os.path.dirname(os.path.abspath(__file__)))
     rb_poj.invoke()
     
 
 
-
 def listproj(table):
+    # request all projects for the signed in user
     print("listproj")
     headers = {
         'Content-Type': 'application/json',
         'token': show_token.get("1.0",'end-1c'),
     }
 
-    response2 = requests.get('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers)
-    x = json.loads(response2.text)
+    response = requests.get('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers)
+    x = json.loads(response.text)
+
+    # add project list to the table, note the difference for multiple and single returns.
     try:
         y = x['projects']
         for i in table.get_children():
@@ -99,6 +107,7 @@ def listproj(table):
         raise
 
 def new_Container():
+    # create new project or library
     if v.get() == 1:
         add_Project()
     else:
@@ -107,6 +116,7 @@ def new_Container():
 
 
 def upd_Container():
+    # update a project or library
     if v.get() == 1:
         upd_Project()
     else:
@@ -117,27 +127,23 @@ def add_Project():
 
     def sendProj():
         
-        #Send data to add Project
+        #Send data to API to add Project
         headers = {
             'Content-Type': 'application/json',
             'token': show_token.get("1.0",'end-1c'),
         }
-        print (type(ent_pname.get()))
-
-        print (txt_pdesc.get())
+        
+        # test to see is there is focus in the group table
         try:
             print (listbox4.item(listbox4.focus())['values'][0])
         except IndexError:
             print("Error - need to select Group")
             text_area.insert(END,"Error - need to select Group")
             return
-        print (type(ent_lat.get()))
-        print (type(ent_lon.get()))
-
+        
+        # sending data to API
         data = '{"name":"'+ ent_pname.get() +'","description": "'+ txt_pdesc.get() +'","group_id": ' + str(listbox4.item(listbox4.focus())['values'][0]) + ',"latitude": '+ str(ent_lat.get()) +',"longitude": '+ str(ent_lon.get()) +'}'
-        print(data)
         response = requests.post('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
-        print (response.text)
         text_area.delete('1.0', 'end')
         text_area.insert(END, response.text + '\n')
         if v.get() ==1:
@@ -146,8 +152,7 @@ def add_Project():
 
     #Build the interface for the pop-up UI
     text_area.delete('1.0', 'end')
-    text_area.insert(END, 'Opening add project menu' + '\n')
-    
+    text_area.insert(END, 'Opening add project menu' + '\n')   
     t = Toplevel()
     t.title("Add new Project")
     lbl_pname = Label(t,text="Project Name").pack()
@@ -180,14 +185,11 @@ def add_Project():
         'Content-Type': 'application/json',
         'token': show_token.get("1.0",'end-1c'),
     }
-
     response = requests.get('https://api.3dusernet.com/3dusernetApi/api/groups.json', headers=headers)
     x = json.loads(response.text)
     try:
         y = x['groups']
         if type(y) is list:
-            print(y[1])
-            print(len(y))
             i=0
             while i < len(y) :
                 listbox4.insert('','end', values= (y[i]['id'], y[i]['name']))
@@ -195,7 +197,6 @@ def add_Project():
         else:
             print(type(y))           
             
-
     except OSError as err:
         print("OS error: {0}".format(err))
     except ValueError:
@@ -204,27 +205,27 @@ def add_Project():
         print("Unexpected error:", sys.exc_info()[0])
         raise
 
+
 def upd_Project():
     
     def updProj():
+        
         #Update the Project
         headers = {
             'Content-Type': 'application/json',
             'token': show_token.get("1.0",'end-1c'),
         }
-        print (type(ent_pname.get()))
-        print (txt_pdesc.get())
+        
+        # test to see is there is focus in the group table
         try:
             print (listbox5.item(listbox5.focus())['values'][0])
         except IndexError:
             print("need to select a Group")
             text_area.insert(END, "Error - need to select a group"+ '\n')
             return
-        print (type(ent_lat.get()))
-        print (type(ent_lon.get()))
 
+        # send data to API
         data = '{"name":"'+ ent_pname.get() +'","description": "'+ txt_pdesc.get() +'","group_id": ' + str(listbox5.item(listbox5.focus())['values'][0]) + ',"latitude": '+ str(ent_lat.get()) +',"longitude": '+ str(ent_lon.get()) +',"id":'+ str(ProjID) + '}'
-        print(data)
         response = requests.put('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
         print (response.text)
         text_area.delete('1.0', 'end')
@@ -232,7 +233,6 @@ def upd_Project():
         if v.get() ==1:
             listproj(listbox)
         t.destroy()
-    
     
     #Get ID of selected Project
     if v.get()==1:
@@ -252,12 +252,9 @@ def upd_Project():
 
         data = '{"id":'+ str(ProjID) +'}'
         response = requests.get('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
-        #print (response.text)
         x = json.loads(response.text)
         text_area.delete('1.0', 'end')
         text_area.insert(END, "Opening project update menu" + '\n')
-        #print(x['projects'])
-
         currGroup = 'Current Group is: ' + str(x['projects']['group_id'])
 
         #Enter New Details (Prepopulate with Existing Details)
@@ -273,8 +270,7 @@ def upd_Project():
         txt_pdesc.insert(END, str(x['projects']['description']))
         txt_pdesc.pack()
         lbl_group = Label(t,text="Select a Group").pack()
-        lbl_group2 = Label(t,text=currGroup).pack()
-        
+        lbl_group2 = Label(t,text=currGroup).pack()     
         lb_header5 = ['id', 'name']
         listbox5 = ttk.Treeview(t, columns=lb_header, show="headings")
         listbox5.heading('id', text="id")
@@ -300,7 +296,6 @@ def upd_Project():
             'Content-Type': 'application/json',
             'token': show_token.get("1.0",'end-1c'),
         }
-
         response = requests.get('https://api.3dusernet.com/3dusernetApi/api/groups.json', headers=headers)
         x2 = json.loads(response.text)
         try:
@@ -322,14 +317,10 @@ def upd_Project():
             print("Unexpected error:", sys.exc_info()[0])
             raise
 
-
     else:
         print('Please select a Project')
         text_area.delete('1.0', 'end')
         text_area.insert(END, 'Please select a Project')
-
-    
-    
 
 
 def add_Library():
@@ -341,19 +332,13 @@ def add_Library():
             'Content-Type': 'application/json',
             'token': show_token.get("1.0",'end-1c'),
         }
-        print (type(ent_lname.get()))
-        print (txt_ldesc.get())
-
         data = '{"name":"'+ ent_lname.get() +'","description": "'+ txt_ldesc.get() +'"}'
-        print(data)
         response = requests.post('https://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers, data=data)
-        print (response.text)
         text_area.delete('1.0', 'end')
         text_area.insert(END, response.text + '\n')
         if v.get() ==2:
             listlib(listbox)
         t.destroy()
-
         
     #Build the interface for the pop-up UI
 
@@ -366,8 +351,7 @@ def add_Library():
     ent_lname.pack()
     lbl_ldesc = Label(t,text="Library Description").pack()
     txt_ldesc = Entry(t, background="grey", width = 45)
-    txt_ldesc.pack()
-    
+    txt_ldesc.pack()  
     bt_Create = Button(t,text = "Create Library", command=lambda: sendLib())
     bt_Create.pack()
     bt_Cancel = Button(t, text = "Cancel",command= t.destroy)
@@ -378,18 +362,14 @@ def add_Library():
 def upd_Library():
 
     def updLib():
+        
         #Send Data to update the Library
         headers = {
             'Content-Type': 'application/json',
             'token': show_token.get("1.0",'end-1c'),
         }
-        print (type(ent_lname.get()))
-        print (txt_ldesc.get())
-
         data = '{"name":"'+ ent_lname.get() +'","description": "'+ txt_ldesc.get() +'", "id":'+str(LibID)+'}'
-        print(data)
         response = requests.put('https://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers, data=data)
-        print (response.text)
         text_area.delete('1.0', 'end')
         text_area.insert(END, response.text + '\n')
         if v.get() ==2:
@@ -405,17 +385,14 @@ def upd_Library():
         except IndexError:
             print("need to select a library")
             text_area.insert(END, "Error - need to select a library"+ '\n')
-            return
-        
+            return 
 
         #Get Library Details
         headers = {
             'Content-Type': 'application/json',
             'token': show_token.get("1.0",'end-1c'),
         }
-
         data = '{"id":'+ str(LibID) +'}'
-        print(data)
         response = requests.get('https://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers, data=data)
         x = json.loads(response.text)
         text_area.delete('1.0', 'end')
@@ -432,33 +409,29 @@ def upd_Library():
         lbl_ldesc = Label(t,text="Library Description").pack()
         txt_ldesc = Entry(t, background="grey", width = 45)
         txt_ldesc.insert(END,str(x['libraries']['description']))
-        txt_ldesc.pack()
-        
+        txt_ldesc.pack()  
         bt_update = Button(t,text = "Update Library", command=lambda: updLib())
         bt_update.pack()
         bt_Cancel = Button(t, text = "Cancel",command= t.destroy)
         bt_Cancel.pack()
 
-        
-
     else: 
         print('Please select a Library')
         text_area.delete('1.0', 'end')
         text_area.insert(END, 'Please select a Library')
-
-
+        
     print('Update Library')
 
 
 
 
 def listlib(table):
-    print("listlib")
+    
+    # Call for a list of user libraries and add to table
     headers = {
         'Content-Type': 'application/json',
         'token': show_token.get("1.0",'end-1c'),
     }
-
     response = requests.get('https://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers)
     x = json.loads(response.text)
     try:
@@ -486,7 +459,8 @@ def listlib(table):
         raise
     
 def listpc():
-    print("listPC")
+
+    # Call for a list of user pointclouds and add to asset table - works for both projects and librby containers
     headers = {
         'Content-Type': 'application/json',
         'token': show_token.get("1.0",'end-1c'),
@@ -499,7 +473,9 @@ def listpc():
         text_area.insert(END, "Error - need to select a project/library"+ '\n')
         return
     data = '{ "id": '+ str(listbox.item(uid)['values'][0]) + '}'
-    print (v.get())
+
+
+    # detemine what type of container has been selected
     if v.get() ==1 :
         response = requests.get('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
     else:
@@ -533,8 +509,8 @@ def listpc():
 
 
 def listmod():
-    print("listMD")
 
+    # Call for a list of user models and adds to asset table - works for both projects and librby containers
     headers = {
         'Content-Type': 'application/json',
         'token': show_token.get("1.0",'end-1c'),
@@ -547,9 +523,9 @@ def listmod():
         text_area.insert(END, "Error - need to select a project/library"+ '\n')
         return
 
-
-        
     data = '{ "id": '+ str(listbox.item(uid)['values'][0]) + '}'
+    
+    # detemine what type of container has been selected
     if v.get() ==1 :
         response = requests.get('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
     else:
@@ -587,7 +563,8 @@ def listmod():
 
 
 def listsnaps():
-    print("listSnaps")
+
+    # Call for a list of user snapshots and adds to asset table - works for both projects and librby containers
     headers = {
         'Content-Type': 'application/json',
         'token': show_token.get("1.0",'end-1c'),
@@ -600,7 +577,8 @@ def listsnaps():
         text_area.insert(END, "Error - need to select a project/library"+ '\n')
         return
     data = '{ "id": '+ str(listbox.item(uid)['values'][0]) + '}'
-    print (v.get())
+    
+    # detemine what type of container has been selected
     if v.get() ==1 :
         response = requests.get('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
     else:
@@ -633,8 +611,8 @@ def listsnaps():
         raise
 
 def updt_gr(event):
-    print("update_group")
-    print (v2.get())
+    
+     # sets up the asset table based on radio button selection. Note the program will defualt to Pointcloud on first load.
     if v2.get() == 0:
         rb_pc.invoke()
     elif v2.get() ==1:
@@ -647,63 +625,54 @@ def updt_gr(event):
 
 
 def updt_as(event):
-    print("update_asset")
+
     # update information on right side, required before download is available.
     headers = {
         'Content-Type': 'application/json',
         'token': show_token.get("1.0",'end-1c'),
     }
     uid = lb_assets.focus()
-    print (lb_assets.item(uid)['values'][0])
+
+
     data = '{ "id": '+ str(lb_assets.item(uid)['values'][0]) + '}'
-    print (v2.get())
-    print (data)
     if str(lb_assets.item(uid)['values'][0]) =="---" :
         print("no data")
     else:
         if v2.get() == 1 :
-            print ("pc")
+            # pointcloud
             response = requests.get('https://api.3dusernet.com/3dusernetApi/api/point_cloud.json', headers=headers, data=data)
-
             x = json.loads(response.text)
             y = x['point_cloud']
-
         elif v2.get()==2 :
-            print("mod")
+           # model
             response = requests.get('https://api.3dusernet.com/3dusernetApi/api/models.json', headers=headers, data=data)
             x = json.loads(response.text)
             y = x['models']
-            
- 
         elif v2.get()==3 :
-            print("snap")
+           # snapshot
             response = requests.get('https://api.3dusernet.com/3dusernetApi/api/snapshots.json', headers=headers, data=data)
             x = json.loads(response.text)
             y = x['snapshots']
- 
- 
         else:
             print("no selection")
-            
+
+        # Fill in detail on centre right
         uida.set ( y['id'])
         if v2.get() == 3 :
             name.set ( y['name']+ '.jpg')
             downl.set ( y['image'])
+            size.set ( 'not availabe')
         else:
             name.set (y['file_name'])
             downl.set ( y['s3_file_download'])
-        if v2.get() == 3 :
-            size.set ( 'not availabe')
-        else:           
             size.set ( y['file_size'])
+
         cr8td.set ( y['created'])
                             
-        # Model transformation Data
+        # Include model transformation Data for models inserted in projects only.
 
-        
         if v.get() ==1 and v2.get() == 2:
             data = '{"id":' + str(listbox.item(listbox.focus())['values'][0]) + ',"model_id":' + str(lb_assets.item(lb_assets.focus())['values'][0]) + '}'
-            print (data)
             response = requests.get('https://api.3dusernet.com/3dusernetApi/api/models_orientation.json', headers=headers, data=data)
             x = json.loads(response.text)
             try:
@@ -719,8 +688,9 @@ def updt_as(event):
             try:                
                 response = x['multiple response']
 
+                #cycle through responses and find matching orintation_ids
                 for i in response:
-                    print (str(lb_assets.item(lb_assets.focus())['values'][1]) + ", " + str(i['id']))
+                    
                     if str(lb_assets.item(lb_assets.focus())['values'][1]) == str(i['id']):
                         mtrans = i['position']
                         mrot = i['rotation']
@@ -728,17 +698,17 @@ def updt_as(event):
                         mFT = 'T: ' + mtrans + '\nR: ' + mrot + '\nS: ' + mscale
                         mod.set (mFT)
             except:
-                print("single model")
-
-                            
+                print("single model")                            
         else:
             mod.set ('Not Available')
-            
-        
 
 
 def download():
+    
+    #Download an asset
     def directoryBox():
+        
+        #Open a folder select dialogue window
         try:
             options = {}
             options['title'] = "select folder"
@@ -751,22 +721,23 @@ def download():
         except:
             textbox.insert(END, "There was an error opening ")
             textbox.insert(END, fileopen)
-            textbox.insert(END, "\n") 
-    print("download")
+            textbox.insert(END, "\n")
+            
+    #Test to make sure an assets is selected
     if lb_assets.focus() == "" :
         print('no selection')
     else:
         folder = directoryBox()
-        print(folder)
+
+        
         headers = {
             'Content-Type': 'application/json',
             'token': show_token.get("1.0",'end-1c'),
         }
         uid = lb_assets.focus()
 
-        print (lb_assets.item(uid)['values'][0])
         data = '{ "id": '+ str(lb_assets.item(uid)['values'][0]) + '}'
-        print (v2.get())
+
         if str(lb_assets.item(uid)['values'][0]) =="---" :
             print("no data")
         else:
@@ -776,7 +747,7 @@ def download():
                 shutil.copyfileobj(r.raw, f)
             return folder
             if v2.get() == 1 :
-                print ("pc")
+                # pointcloud
                 response = requests.get('https://api.3dusernet.com/3dusernetApi/api/point_cloud.json', headers=headers, data=data)
                 x = json.loads(response.text)
                 y = json.loads(x)
@@ -785,7 +756,7 @@ def download():
                     shutil.copyfileobj(r.raw, f)
                 return folder
             elif v2.get()==2 :
-                print("mod")
+                # Model
                 response = requests.get('https://api.3dusernet.com/3dusernetApi/api/models.json', headers=headers, data=data)
                 x = json.loads(response.text)
                 y = json.loads(x)
@@ -794,11 +765,15 @@ def download():
                     shutil.copyfileobj(r.raw, f)
                 return folder
             else:
-                print("snap - not operational yet")
+                # Snpashots
+                print("snapshots - not operational yet")
 
 def upload_pc():
+
+    #Upload pointcloud to project or library
     def sendpc():
         uid = listbox2.focus()
+        # test listbox for focus
         try:
             print (listbox2.item(uid)['values'][0])
         except IndexError:
@@ -902,7 +877,6 @@ def upload_pc():
 
     
     filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("las files","*.las"),("laz files","*.laz"),("e57 files","*.e57"),("xyz files","*.xyz"),("ply files","*.ply")))
-    print (filename)
     fn = filename.split("/")[len(filename.split("/"))-1]
 
     #Build the interface for the pop-up UI
@@ -988,8 +962,6 @@ def upload_md():
 
                         data = file.read(self.max_byte_length)
                         upload_endpoint = os.path.join(self.api_url, 'content', 'upload')
-                        #print (headers)
-                        #print (upload_endpoint)
 
                         try:
                             response = requests.post(upload_endpoint, headers=headers, data=data)
@@ -1082,12 +1054,13 @@ def upload_md():
     btn_sendfile = Button(t,text ="Send File", command=lambda: sendmod()).pack()
     bt_Cancel = Button(t, text = "Cancel",command= t.destroy)
     bt_Cancel.pack()
-    
     print("upload model")
 
     
             
 def mv_md():
+
+    # Move model to new location
     ProjID = ""
     ModelID = ""
     
@@ -1098,7 +1071,7 @@ def mv_md():
         }
 
         data = '{"id":' + str(modprojlocID) + ',"scale":"' + str(ent_modScl.get()) + '","location":"' + str(ent_modPos.get()) + '","rotation":"' + str(ent_modRot.get()) + '","copy":"false"}'
-        print(data)
+
         #Important to ensure the request is PUT
         response = requests.put('https://api.3dusernet.com/3dusernetApi/api/models_orientation.json', headers=headers, data=data)
         text_area.delete('1.0', 'end')
@@ -1162,6 +1135,8 @@ def mv_md():
  
 
 def cp_md():
+
+    # Copy model to new location
     ProjID = ""
     ModelID = ""
     
@@ -1171,6 +1146,7 @@ def cp_md():
         'token': show_token.get("1.0",'end-1c')
         }
 
+        #Note the copy attribute:
         data = '{"id":' + str(modprojlocID) + ',"scale":"' + str(ent_modScl.get()) + '","location":"' + str(ent_modPos.get()) + '","rotation":"' + str(ent_modRot.get()) + '","copy":"true"}'
         print(data)
         #Important to ensure the request is PUT
@@ -1195,23 +1171,18 @@ def cp_md():
         'Content-Type': 'application/json',
         'token': show_token.get("1.0",'end-1c')
         }
-
         data = '{"id":' + str(ProjID) + ',"model_id":' + str(ModelID) + '}'
-        
         response = requests.get('https://api.3dusernet.com/3dusernetApi/api/models_orientation.json', headers=headers, data=data)
         text_area.delete('1.0', 'end')
         text_area.insert(END, response.text + '\n')
         modprojloc = json.loads(response.text)
-
         modprojlocID = modprojloc['single response']['id']
         
-        print('ModelProjectLocation = ', modprojlocID)
 
         #Build the interface for the pop-up UI
         t = Toplevel()
         t.title("Copy Model")
         lbl_pname = Label(t,text="Enter the Parameters").pack()
- 
         lbl_pcattrib = Label(t,text="Position").pack()
         ent_modPos = Entry(t)
         ent_modPos.pack()
@@ -1224,7 +1195,6 @@ def cp_md():
         ent_modScl = Entry(t)
         ent_modScl.pack()
         ent_modScl.insert(0, str(modprojloc['single response']['scale']))
-
         btn_sendfile = Button(t,text ="Copy Model", command=lambda: copyMod()).pack()
         bt_Cancel = Button(t, text = "Cancel",command= t.destroy)
         bt_Cancel.pack()
@@ -1249,7 +1219,6 @@ def delProj():
         
         #check with User to verify delete
         response = messagebox.askokcancel("Python","Are you sure you wish to delete this project?")
-        print (response)
         if response == False:
             print("Operation cancelled")
             text_area.insert(END, "Operation cancelled"+ '\n')
@@ -1260,7 +1229,6 @@ def delProj():
         'Content-Type': 'application/json',
         'token': show_token.get("1.0",'end-1c')
         }
-
         data = '{"id":' + str(ProjID) + '}'
         response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/project.json', headers=headers, data=data)
         text_area.delete('1.0', 'end')
@@ -1279,7 +1247,6 @@ def delProj():
         
         #check with User to verify delete
         response = messagebox.askokcancel("Python","Are you sure you wish to delete this Library?")
-        print (response)
         if response == False:
             print("Operation cancelled")
             text_area.insert(END, "Operation cancelled"+ '\n')
@@ -1290,7 +1257,6 @@ def delProj():
         'Content-Type': 'application/json',
         'token': show_token.get("1.0",'end-1c')
         }
-
         data = '{"id":' + str(LibID) + '}'
         response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/library.json', headers=headers, data=data)
         text_area.delete('1.0', 'end')
@@ -1303,8 +1269,7 @@ def delProj():
         listlib(listbox)
 
 def delItem():
-    
-    
+      
     #Case 1 - Project Items Selected
     #Pointclouds
     if v.get() == 1 and v2.get() ==1:
@@ -1318,9 +1283,6 @@ def delItem():
             try:
                 index2 = str(lb_assets.selection()[0])
                 pcID = lb_assets.item(lb_assets.focus())['values'][0]
-
-                print (ProjID)
-                print (pcID)
             
             except:
                 print ('Need to select a valid Pointcloud')
@@ -1333,8 +1295,7 @@ def delItem():
             text_area.insert(END, 'Need to select a Project' + '\n')
 
        #check with User to verify delete
-        response = messagebox.askokcancel("Python","Are you sure you wish to delete this Library?")
-        print (response)
+        response = messagebox.askokcancel("Warning","Are you sure you wish to delete this Library?")
         if response == False:
             print("Operation cancelled")
             text_area.insert(END, "Operation cancelled"+ '\n')
@@ -1346,11 +1307,8 @@ def delItem():
         'Content-Type': 'application/json',
         'token': show_token.get("1.0",'end-1c')
         }
-
         data = '{"point_cloud_id":' + str(pcID) + ',"project_id":' + str(ProjID) + '}'
-        print(data)
         response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_project_point_cloud.json', headers=headers, data=data)
-
         text_area.delete('1.0', 'end')
         text_area.insert(END, response.text + '\n')
         print ('Pointcloud has been deleted')
@@ -1363,45 +1321,33 @@ def delItem():
         try:
             index = str(listbox.selection()[0])
             ProjID = listbox.item(listbox.focus())['values'][0]
-
             try:
                 index2 = str(lb_assets.selection()[0])
                 modID = lb_assets.item(lb_assets.focus())['values'][0]
                 instID = lb_assets.item(lb_assets.focus())['values'][1]
-
-                print (ProjID)
-                print (modID)
-                print (instID)
-            
             except:
                 print ('Need to select a Model')
                 text_area.delete('1.0', 'end')
-                text_area.insert(END, 'Need to select a Model' + '\n')
-            
+                text_area.insert(END, 'Need to select a Model' + '\n')         
         except IndexError:
             print ('Need to select a Project')
             text_area.delete('1.0', 'end')
             text_area.insert(END, 'Need to select a Project' + '\n')
-
+            
         #check with User to verify delete
         response = messagebox.askokcancel("Python","Are you sure you wish to delete this Library?")
-        print (response)
         if response == False:
             print("Operation cancelled")
             text_area.insert(END, "Operation cancelled"+ '\n')
             return
-
 
         #Perform Deletion of Selected Object
         headers = {
         'Content-Type': 'application/json',
         'token': show_token.get("1.0",'end-1c')
         }
-
         data = '{"model_id":' + str(modID) + ',"project_id":' + str(ProjID) + ',"model_project_location_id":' + str(instID) +'}'
-        print(data)
         response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_project_model.json', headers=headers, data=data)
-
         text_area.delete('1.0', 'end')
         text_area.insert(END, response.text + '\n')
         print ('Model has been deleted')
@@ -1419,9 +1365,6 @@ def delItem():
             try:
                 index2 = str(lb_assets.selection()[0])
                 snapID = lb_assets.item(lb_assets.focus())['values'][0]
-
-                print (ProjID)
-                print (snapID)
             
             except:
                 print ('Need to select a Snapshot')
@@ -1446,13 +1389,10 @@ def delItem():
         'Content-Type': 'application/json',
         'token': show_token.get("1.0",'end-1c')
         }
-
         data = '{"snapshot_id":' + str(snapID) + ',"project_id":' + str(ProjID) + '}'
-        
         response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_project_snapshot.json', headers=headers, data=data)
         text_area.delete('1.0', 'end')
         text_area.insert(END, response.text + '\n')
-
         print ('Snapshot has been deleted')
 
         
@@ -1471,10 +1411,6 @@ def delItem():
                 index2 = str(lb_assets.selection()[0])
                 pcID = lb_assets.item(lb_assets.focus())['values'][0]
 
-                print (LibID)
-                print (pcID)
-
-            
             except:
                 print ('Need to select a Pointcloud')
                 text_area.delete('1.0', 'end')
@@ -1487,7 +1423,6 @@ def delItem():
 
        #check with User to verify delete
         response = messagebox.askokcancel("Python","Are you sure you wish to delete this Library?")
-        print (response)
         if response == False:
             print("Operation cancelled")
             text_area.insert(END, "Operation cancelled"+ '\n')
@@ -1500,15 +1435,10 @@ def delItem():
         }
 
         data = '{"point_clouds_ids":[' + str(pcID) + '],"library":' + str(LibID) + '}'
-        print(data)
         response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_library_point_cloud.json', headers=headers, data=data)
-
         text_area.delete('1.0', 'end')
         text_area.insert(END, response.text + '\n')
-        print ('Pointcloud has been deleted')
-
-
-        
+        print ('Pointcloud has been deleted')  
           
     #Models
     elif v.get() == 2 and v2.get() == 2:
@@ -1522,10 +1452,6 @@ def delItem():
             try:
                 index2 = str(lb_assets.selection()[0])
                 modID = lb_assets.item(lb_assets.focus())['values'][0]
-
-                print (LibID)
-                print (modID)
-
             
             except:
                 print ('Need to select a Model')
@@ -1552,9 +1478,7 @@ def delItem():
         }
 
         data = '{"models_ids":[' + str(modID) + '],"library":' + str(LibID) + '}'
-        print(data)
         response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_library_model.json', headers=headers, data=data)
-
         text_area.delete('1.0', 'end')
         text_area.insert(END, response.text + '\n')
         print ('Model has been deleted')
@@ -1572,11 +1496,6 @@ def delItem():
             try:
                 index2 = str(lb_assets.selection()[0])
                 snapID = lb_assets.item(lb_assets.focus())['values'][0]
-
-                print (LibID)
-                print (snapID)
-
- 
             
             except:
                 print ('Need to select a Snapshot')
@@ -1604,9 +1523,7 @@ def delItem():
         }
 
         data = '{"snapshots_ids":[' + str(snapID) + '],"library":' + str(LibID) + '}'
-        print(data)
         response = requests.delete('https://api.3dusernet.com/3dusernetApi/api/delete_library_snapshot.json', headers=headers, data=data)
-
         text_area.delete('1.0', 'end')
         text_area.insert(END, response.text + '\n')
         print ('Snapshot has been deleted')
@@ -1624,40 +1541,84 @@ def upd_asset():
     else:
         upd_Model()
 
-
-    
 def upd_Pointcloud():
 
-    def sendpcUpd():
+    #Updates pointcloud informaation including a thumbnail loader
+    def chooseTN():
+        basewidth = 300
+        print ("choosing thumbnail")
         fileLoc =  filedialog.askopenfilename(initialdir = "/",title = "Select Thumbnail",filetypes = (("jpg files","*.jpg"),("png files","*.png"),("bmp files","*.bmp")))
-        print(str(fileLoc))
         fln = fileLoc.split("/")[len(fileLoc.split("/"))-1]
-        print(fln)
+
+        # require global variable otherwise img and gif1 is sent to garbage at the end of the function
+        global img
+        global gif1
+
         
-        #Send Data for Pointcloud Update
-        multipart_data = MultipartEncoder(
-            fields={
-                    # a file upload field
-                    'files':(str(fln), open(str(fileLoc), 'rb'), 'image/jpeg'),
-                    # plain text fields
-                    'id':str(x['point_cloud']['id']), 
-                    'description':str(ent_pcDesc.get()),
-                    'file_name':str(ent_pcName.get()),
-                   }
-            )
-        print(multipart_data)
+        #Load Image, resize and send to canvas
+        img = Image.open(str(fileLoc))
+        wpercent = (basewidth / float(img.size[0]))
+        hsize = int((float(img.size[1]) * float(wpercent)))
+        img = img.resize((basewidth, hsize), resample=Image.BILINEAR)
+        
+        gif1 = ImageTk.PhotoImage(img)    
+        ent_canvas.delete("all")
+        ent_canvas.create_image(0,0,image=gif1, anchor=NW)
+        t.lift()
 
-        response = requests.put('https://api.3dusernet.com/3dusernetApi/api/point_cloud.json', data=multipart_data, headers={
-            #Important to note different type of content in the header here
-            'Content-Type': multipart_data.content_type,
-            'token': show_token.get("1.0",'end-1c'),
-        })
-        text_area.delete('1.0', 'end')
-        text_area.insert(END, response.text + '\n')
-        print ('Pointcloud has been Updated')
+    def clearTN():
+        
+        #This clears the thumbnail from the viewer, however at this point in time there is no way of clearing a thumbnail from the API
+        global img
+        img = ""
+        ent_canvas.delete("all")
+
+    def sendpc():
+        
+        #Two different requests depening on whether a thumbnail is to uploaded or not
+        if type(img) == str:
+            print ("no image")
+
+
+            headers = {
+            'Content-Type': 'application/json',
+            'token': show_token.get("1.0",'end-1c')
+            }
+            data = '{"id":' + str(x['point_cloud']['id']) + ', "description":"' + str(ent_pcDesc.get()) + '", "file_name":"' + str(ent_pcName.get()) + '"}'
+            response = requests.put('https://api.3dusernet.com/3dusernetApi/api/point_cloud.json.json', headers=headers, data=data)
+
+            #send notification to user
+            text_area.delete('1.0', 'end')
+            text_area.insert(END, response.text + '\n')
+            print ('Pointcloud has been Updated')
+
+
+        else:
+            
+            output = io.BytesIO()
+            img.save(output, format='PNG')
+
+            #Send Data for Pointcloud Update - note that image is sent as hexidecimal binary
+            
+            multipart_data = MultipartEncoder(
+                fields={
+                        # a file upload field
+                        'files':('thumb', output.getvalue(), 'image/png'),
+                        # plain text fields
+                        'id':str(x['point_cloud']['id']), 
+                        'description':str(ent_pcDesc.get()),
+                        'file_name':str(ent_pcName.get()),
+                       }
+                )
+            response = requests.put('https://api.3dusernet.com/3dusernetApi/api/point_cloud.json', data=multipart_data, headers={
+                #Important to note different type of content in the header here
+                'Content-Type': multipart_data.content_type,
+                'token': show_token.get("1.0",'end-1c'),
+            })
+            text_area.delete('1.0', 'end')
+            text_area.insert(END, response.text + '\n')
+            print ('Pointcloud has been Updated')
         t.destroy()
-
-
 
     #Check if a Pointcloud is selected and get ID
     if v2.get()==1:
@@ -1685,7 +1646,6 @@ def upd_Pointcloud():
             #Build the interface for the pop-up UI
             t = Toplevel()
             t.title("Update Pointcloud")
-            
             lbl_pcName = Label(t,text="Name").pack()
             ent_pcName = Entry(t)
             ent_pcName.insert(END,str(x['point_cloud']['file_name']))
@@ -1694,9 +1654,29 @@ def upd_Pointcloud():
             ent_pcDesc = Entry(t)
             ent_pcDesc.insert(END,str(x['point_cloud']['description']))
             ent_pcDesc.pack()
-            
-            #btn_getThumb = Button(t,text ="Select Thumbnail", command=lambda: openDialog()).pack()
-            btn_sendfile = Button(t,text ="Choose Thumbnail & Update", command=lambda: sendpcUpd()).pack()
+            ent_canvas = Canvas(t,width=300, height=200, bg='black')
+            ent_canvas.pack()
+
+            # Using PIL to load image and resize to 275 width, keeping image proportionally correct
+            basewidth = 275
+            global img
+            global gif1
+            try:
+                fd =  urllib.request.urlopen(y['thumbnail'])
+                image_file = io.BytesIO(fd.read())
+                img = Image.open(image_file)
+                wpercent = (basewidth / float(img.size[0]))
+                hsize = int((float(img.size[1]) * float(wpercent)))
+                img = img.resize((basewidth, hsize), resample=Image.BILINEAR)
+                gif1 = ImageTk.PhotoImage(img) 
+                ent_canvas.create_image(0,0,image=gif1, anchor=NW)
+ 
+            except:
+                text_area.insert(END, 'current Thumbnail empty or not stored as url' + '\n')
+                img = ""                          
+            btn_clearThumb = Button(t,text ="Clear Thumbnail", command=lambda: clearTN()).pack()
+            bt_chooseTH = Button(t,text ="Choose Thumbnail", command=lambda: chooseTN()).pack()
+            bt_sendfile = Button(t,text ="Update", command=lambda: sendpc()).pack()
             bt_Cancel = Button(t, text = "Cancel",command= t.destroy)
             bt_Cancel.pack()
 
@@ -1708,36 +1688,69 @@ def upd_Pointcloud():
 
 def upd_Model():
 
-    def sendmodUpd():
+    #Updates model informaation including a thumbnail loader
+    def chooseTN():
+        basewidth = 300
+        print ("choosing thumbnail")
         fileLoc =  filedialog.askopenfilename(initialdir = "/",title = "Select Thumbnail",filetypes = (("jpg files","*.jpg"),("png files","*.png"),("bmp files","*.bmp")))
-        print(str(fileLoc))
         fln = fileLoc.split("/")[len(fileLoc.split("/"))-1]
-        print(fln)
-        
-        #Send Data for Pointcloud Update
-        multipart_data = MultipartEncoder(
-            fields={
-                    # a file upload field
-                    'files':(str(fln), open(str(fileLoc), 'rb'), 'image/jpeg'),
-                    # plain text fields
-                    'id':str(x['models']['id']), 
-                    'description':str(ent_modDesc.get()),
-                    'file_name':str(ent_modName.get()),
-                   }
-            )
-        print(multipart_data)
+        global img
+        global gif1
+        #Load Image, resize and send to canvas
+        img = Image.open(str(fileLoc))
+        wpercent = (basewidth / float(img.size[0]))
+        hsize = int((float(img.size[1]) * float(wpercent)))
+        img = img.resize((basewidth, hsize), resample=Image.BILINEAR)    
+        gif1 = ImageTk.PhotoImage(img)    
+        ent_canvas.delete("all")
+        ent_canvas.create_image(0,0,image=gif1, anchor=NW)
+        t.lift()
 
-        response = requests.put('https://api.3dusernet.com/3dusernetApi/api/models.json', data=multipart_data, headers={
-            #Important to note different type of content in the header here
-            'Content-Type': multipart_data.content_type,
-            'token': show_token.get("1.0",'end-1c'),
-        })
-        text_area.delete('1.0', 'end')
-        text_area.insert(END, response.text + '\n')
-        print ('Model has been Updated')
-        t.destroy()
+    def clearTN():
+        global img
+        img = ""
+        ent_canvas.delete("all")
 
+    def sendmod():
+        if type(img) == str:
+            print ("no image")
+            headers = {
+            'Content-Type': 'application/json',
+            'token': show_token.get("1.0",'end-1c')
+            }
+            data = '{"id":' + str(x['models']['id']) + ', "description":"' + str(ent_modDesc.get()) + '", "file_name":"' + str(ent_modName.get()) + '"}'
+            response = requests.put('https://api.3dusernet.com/3dusernetApi/api/models.json.json', headers=headers, data=data)
 
+            #send notification to user
+            text_area.delete('1.0', 'end')
+            text_area.insert(END, response.text + '\n')
+            print ('Model has been Updated')
+
+        else:
+            
+            output = io.BytesIO()
+            img.save(output, format='PNG')
+
+            #Send Data for Pointcloud Update
+            multipart_data = MultipartEncoder(
+                fields={
+                        # a file upload field
+                        'files':('thumb', output.getvalue(), 'image/png'),
+                        # plain text fields
+                        'id':str(x['models']['id']), 
+                        'description':str(ent_modDesc.get()),
+                        'file_name':str(ent_modName.get()),
+                       }
+                )
+            response = requests.put('https://api.3dusernet.com/3dusernetApi/api/models.json', data=multipart_data, headers={
+                #Important to note different type of content in the header here
+                'Content-Type': multipart_data.content_type,
+                'token': show_token.get("1.0",'end-1c'),
+            })
+            text_area.delete('1.0', 'end')
+            text_area.insert(END, response.text + '\n')
+            print ('Model has been Updated')
+            t.destroy()
 
     #Check if a Model is selected and get ID
     if v2.get()==2:
@@ -1755,17 +1768,14 @@ def upd_Model():
             uid = lb_assets.focus()
             print (lb_assets.item(uid)['values'][0])
             data = '{ "id": '+ str(lb_assets.item(uid)['values'][0]) + '}'
-
             response = requests.get('https://api.3dusernet.com/3dusernetApi/api/models.json', headers=headers, data=data)
             x = json.loads(response.text)
             y = x['models']
 
-            
-
             #Build the interface for the pop-up UI
+
             t = Toplevel()
-            t.title("Update Model")
-            
+            t.title("Update Pointcloud")           
             lbl_modName = Label(t,text="Name").pack()
             ent_modName = Entry(t)
             ent_modName.insert(END,str(x['models']['file_name']))
@@ -1774,9 +1784,34 @@ def upd_Model():
             ent_modDesc = Entry(t)
             ent_modDesc.insert(END,str(x['models']['description']))
             ent_modDesc.pack()
+            ent_canvas = Canvas(t,width=300, height=200, bg='black')
+            ent_canvas.pack()
+
+            # Using PIL to load image and resize to 275 width, keeping image proportionally correct
+
+            basewidth = 275
+            global img
+            global gif1
+
+            try:
+                fd =  urllib.request.urlopen(y['thumbnail'])
+                image_file = io.BytesIO(fd.read())
+                img = Image.open(image_file)
+                wpercent = (basewidth / float(img.size[0]))
+                hsize = int((float(img.size[1]) * float(wpercent)))
+                img = img.resize((basewidth, hsize), resample=Image.BILINEAR)
+                gif1 = ImageTk.PhotoImage(img) 
+                ent_canvas.create_image(0,0,image=gif1, anchor=NW)
+ 
+            except:
+                text_area.insert(END, 'current Thumbnail empty or not stored as url' + '\n')
+                img = ""
+
+                                           
             
-            #btn_getThumb = Button(t,text ="Select Thumbnail", command=lambda: openDialog()).pack()
-            btn_sendfile = Button(t,text ="Choose Thumbnail & Update", command=lambda: sendmodUpd()).pack()
+            btn_clearThumb = Button(t,text ="Clear Thumbnail", command=lambda: clearTN()).pack()
+            bt_chooseTH = Button(t,text ="Choose Thumbnail", command=lambda: chooseTN()).pack()
+            bt_sendfile = Button(t,text ="Update", command=lambda: sendmod()).pack()
             bt_Cancel = Button(t, text = "Cancel",command= t.destroy)
             bt_Cancel.pack()
 
@@ -1785,15 +1820,13 @@ def upd_Model():
         text_area.insert(END, 'Please select a Model')
         print('Please select a Model')
     
-    print('Updating Model')         
-
-    
+    print('Updating Model')          
 
 
-############################### 
+##############   TKINTER ROOT MENU  ################# 
     
 root = Tk()
-root.title('Model Definition')
+root.title('API Example interface V1.0')
 root.geometry('{}x{}'.format(650, 600))
 
 
@@ -1984,24 +2017,21 @@ text_area= Text(btm_frame, background="#c1c5d6"
 text_area.grid(row=0,column=0,sticky=W+E)
 
 
-# load info into fields
+# load config info into fields if they exist
 try:
     f=open("config.txt", "r")
     if f.mode == 'r':
         contents =f.read()
-        print(contents.splitlines()[0])
         user.set(contents.splitlines()[0])
         api.set(contents.splitlines()[2])
-
         enc = ast.literal_eval(contents.splitlines()[1])
         senc = enc.decode('utf-8')
-        print (senc)
-        print (type(senc))
         dec = decoder(senc,str(contents.splitlines()[0]))
         pword.set(dec)
 except:
     print("Error - Unable to load previous details")
     text_area.delete('1.0', 'end')
     text_area.insert(END, 'Error - Unable to load previous details' + '\n')
-
+    
+root.lift()
 root.mainloop()
